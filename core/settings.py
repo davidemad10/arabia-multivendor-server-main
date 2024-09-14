@@ -1,6 +1,7 @@
 
 from datetime import timedelta
 from pathlib import Path
+import environ 
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -8,6 +9,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 from django.utils.translation import gettext_lazy as _
 
 
+env=environ.Env()
+# env_file = os.path.join(BASE_DIR, '.env')
+environ.Env.read_env(BASE_DIR / '.env')
 
 SECRET_KEY = 'django-insecure-t+o87tcbcea5%kkscv($!=5js%-@sxk7wq1v%tdjg$njj5$h^%'
 
@@ -42,6 +46,7 @@ INSTALLED_APPS = [
     "rosetta",
     "parler",
     "mptt",
+    "modeltranslation",
     
 ]
 
@@ -112,11 +117,23 @@ AUTH_USER_MODEL = 'account.User'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+'default': {
+'ENGINE': 'django.db.backends.postgresql',
+'NAME': env("DB_NAME"),
+'USER': env("DB_USER"),
+'PASSWORD': env("DB_PASSWORD"),
+'HOST': env("DB_HOST"),
+'PORT': env("DB_PORT"), 
+}
 }
 
 

@@ -30,7 +30,7 @@ from django.http import Http404
 
 class CategoryViewSet(viewsets.ViewSet):
     queryset = Category.objects.all()
-
+    
     def list(self, request):
         featured = request.GET.get("featured")
         parent_slug = request.GET.get("parent")
@@ -76,13 +76,15 @@ class ProductViewSet( viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         queryset = queryset.filter(is_available=True, stock_quantity__gt=0)
-        try:
-            category_slug = self.request.GET.get("category")
-            category=Category.objects.get(slug=category_slug)
-            descendant_categories=category.get_descendants(include_self=False)
-            queryset=queryset.filter(category__in=descendant_categories)
-        except Category.DoesNotExist:
-                raise Http404 ('Category not found.')
+        category_slug = self.request.GET.get("category")
+        if category_slug:
+            try:
+
+                category=Category.objects.get(slug=category_slug)
+                descendant_categories=category.get_descendants(include_self=False)
+                queryset=queryset.filter(category__in=descendant_categories)
+            except Category.DoesNotExist:
+                    raise Http404 ('Category not found.')
         return queryset
 
 
