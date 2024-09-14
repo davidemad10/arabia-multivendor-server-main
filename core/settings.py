@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     # 3rd Party Apps
     # "django_extensions",
     "django_filters",
-    # "drf_yasg",
+
+    "drf_yasg",
     "rest_framework",
     # "taggit",
     "corsheaders",
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     "parler",
     "mptt",
     "modeltranslation",
+    "rest_framework_swagger"
     
 ]
 
