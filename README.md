@@ -12,7 +12,7 @@
   - [4. Install Dependencies](#4-install-dependencies)
   - [5. Environment Variables](#5-environment-variables)
   - [6. Apply Migrations](#6-apply-migrations)
-  - [7. Start the Development Server](#7-start-the-development-server)
+  - [7. Run the Development Server](#7-run-the-development-server)
 
 
 ---
@@ -56,7 +56,7 @@ DB_PORT= Data Base Port
 ```
 
 # Running the Project
-### 6.Apply Migrations
+### 6. Apply Migrations
 Before running the server, you need to apply the database migrations:
 ```bash
 python manage.py migrate
