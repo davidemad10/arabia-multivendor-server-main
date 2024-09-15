@@ -4,11 +4,16 @@
 
 
 ## Table of Contents
+- [Project Name](#project-name)
 - [Project Setup](#project-setup)
-- [Running the Project](#running-the-project)
-- [Environment Variables](#environment-variables)
-- [Database Migration](#database-migration)
-- [Create a Superuser](#create-a-superuser)
+  - [1. Clone the Repository](#1-clone-the-repository)
+  - [2. Create a Virtual Environment](#2-create-a-virtual-environment)
+  - [3. Activate the Virtual Environment](#3-activate-the-virtual-environment)
+  - [4. Install Dependencies](#4-install-dependencies)
+  - [5. Set Up Environment Variables](#5-set-up-environment-variables)
+  - [6. Apply Migrations](#6-apply-migrations)
+  - [7. Start the Development Server](#7-start-the-development-server)
+
 
 ---
 
