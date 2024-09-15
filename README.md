@@ -61,7 +61,7 @@ Before running the server, you need to apply the database migrations:
 ```bash
 python manage.py migrate
 ```
-### 7.Run the Development Server
+### 7. Run the Development Server
 ```bash
 python manage.py runserver
 ```
