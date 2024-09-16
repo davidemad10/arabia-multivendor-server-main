@@ -81,12 +81,12 @@ class BuyerRegisterView(CreateAPIView):
             user.save()
             BuyerProfile.objects.create(user=user)
 
-        # send_temporary_password(
-        #     temp_password,
-        #     "emails/temp_password.html",
-        #     _("Arbia Account Activation"),
-        #     email,
-        # )
+        send_temporary_password(
+            temp_password,
+            "emails/temp_password.html",
+            _("Arbia Account Activation"),
+            email,
+        )
         return Response({
             'message': 'A temporary password has been sent to your email address.',
             'email': email

@@ -25,7 +25,7 @@ from .serializers import (
     ProductSerializer,
 )
 from django.http import Http404
-
+from rest_framework.decorators import action
 
 
 class CategoryViewSet(viewsets.ViewSet):
@@ -71,7 +71,7 @@ class ProductViewSet( viewsets.ModelViewSet):
 
     # filterset_class = ProductFilter
     # ordering = "name"
-    # pagination_class = ProductPagination
+    pagination_class = ProductPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -86,5 +86,24 @@ class ProductViewSet( viewsets.ModelViewSet):
             except Category.DoesNotExist:
                     raise Http404 ('Category not found.')
         return queryset
+    
+    @action(detail=True, methods=["get"])
+    def you_may_like(self, request, pk=None):
+        try:
+            product = self.get_object()
+            recommended_by_category = Product.objects.filter(
+                category=product.category
+            ).exclude(sku=product.sku).filter(is_available=True).order_by('-total_views')[:5]
 
+            recommended_by_brand = Product.objects.filter(
+                brand=product.brand
+            ).exclude(sku=product.sku).filter(is_available=True).order_by('-total_views')[:5]
+
+            recommended_products = (recommended_by_category | recommended_by_brand).distinct()[:5]
+
+            serializer = ProductSerializer(recommended_products, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        except Product.DoesNotExist:
+            raise Http404('Product not found.')
 
