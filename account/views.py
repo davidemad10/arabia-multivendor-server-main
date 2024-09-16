@@ -61,6 +61,9 @@ class BuyerRegisterView(CreateAPIView):
     def create(self, request, *args, **kwargs):
         data = request.data
         serializer = self.get_serializer(data=data)
+        # Validate the serializer
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         temp_password = ''.join(random.choices(string.digits, k=6))
 
         email = data.get('email')
