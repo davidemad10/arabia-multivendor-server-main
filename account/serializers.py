@@ -11,9 +11,9 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    shipping_address = serializers.PrimaryKeyRelatedField(
-        queryset=Address.objects.all(), many=False, required=False, allow_null=True
-    )
+    # shipping_address = serializers.PrimaryKeyRelatedField(
+    #     queryset=Address.objects.all(), many=False, required=False, allow_null=True
+    # )
 
     created_date = serializers.SerializerMethodField(read_only=True)
     created_time = serializers.SerializerMethodField(read_only=True)
@@ -28,6 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_supplier",
             "created_date",
             "created_time",
+            "password",
         )
 
 

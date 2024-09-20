@@ -138,3 +138,5 @@ class SupplierRegisterView(CreateAPIView):
                 )
         else:
             return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
