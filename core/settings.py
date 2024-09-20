@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     'product',
     'order',
     'advertisement',
+    'company',
+    'stats',
+    'wallet',
     # 3rd Party Apps
     # "django_extensions",
     "django_filters",
@@ -205,8 +208,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
-EMAIL_HOST_USER = "sistar32.m@gmail.com"
-EMAIL_HOST_PASSWORD = "usws cxac oqec tuqi"
+# EMAIL_HOST_USER = "sistar32.m@gmail.com"
+# EMAIL_HOST_PASSWORD = "usws cxac oqec tuqi"
+EMAIL_HOST_USER = "arabiashp@gmail.com"
+EMAIL_HOST_PASSWORD = "shiu llsl xocd slbk"
 EMAIL_USE_TLS = True
 
 

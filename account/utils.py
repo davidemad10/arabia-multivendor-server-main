@@ -20,3 +20,4 @@ def send_temporary_password(temp_password, template, subject, to):
         )
     except Exception as e:
         print(f"Error sending activation email: {e}")
+        raise e
