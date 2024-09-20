@@ -67,6 +67,7 @@ class BuyerRegisterView(CreateAPIView):
         temp_password = ''.join(random.choices(string.digits, k=6))
 
         email = data.get('email')
+        
         user = User.objects.filter(email__iexact=email).first()
 
         if user:

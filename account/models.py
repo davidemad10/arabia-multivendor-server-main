@@ -78,7 +78,7 @@ class BuyerProfile(models.Model):
     user = models.OneToOneField(User, related_name="buyer_profile", on_delete=models.CASCADE)
     phone = models.CharField(_("Phone Number"), max_length=20,null=True,blank=True)
     bank_account = models.CharField(_("Bank account"), max_length=50,null=True,blank=True)
-    instabuy_account = models.CharField(_("Instabuy account"), max_length=50,null=True,blank=True)
+    instapay_account = models.CharField(_("Instapay account"), max_length=50,null=True,blank=True)
     electronic_wallet = models.CharField(_("Electronic wallet"), max_length=50,null=True,blank=True)
     profile_picture = models.ImageField(
         _("Profile Picture"),
@@ -92,11 +92,10 @@ class BuyerProfile(models.Model):
 
     def __str__(self):
         return self.user.email
-    
+
 
 
 class Favorite(models.Model):
-
     user_profile = models.ForeignKey(BuyerProfile, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -104,7 +103,6 @@ class Favorite(models.Model):
     class Meta:
         unique_together = ('user_profile', 'product')
 
-    
 
 class SupplierDocuments (models.Model):
     front_id=models.FileField(_("Front side of ID"),upload_to=suppliers_documents_path)
@@ -121,7 +119,7 @@ class SupplierProfile(models.Model):
     phone = models.CharField(_("Phone Number"), max_length=20,null=True,blank=True)
     entity_address= models.ForeignKey(Address,related_name="entity_address",on_delete=models.SET_NULL,null=True)
     bank_account = models.CharField(_("Bank account"), max_length=50,null=True,blank=True)
-    instapay_account = models.CharField(_("Instabuy account"), max_length=50,null=True,blank=True)
+    instapay_account = models.CharField(_("Instapay account"), max_length=50,null=True,blank=True)
     electronic_wallet = models.CharField(_("Electronic wallet"), max_length=50,null=True,blank=True)
     documents = models.OneToOneField(SupplierDocuments, related_name="supplier_documents", on_delete=models.CASCADE)
 
