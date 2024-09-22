@@ -13,6 +13,7 @@ from mptt.models import MPTTModel, TreeForeignKey
 from parler.models import TranslatableModel,TranslatedFields
 from .managers import CategoryManager
 
+
 User = get_user_model()
 
 
@@ -179,8 +180,15 @@ class Product(TranslatableModel):
         null=True,
         validators=[image_extension_validator],
     )
+    specifications = models.JSONField(_("Specifications"), blank=True, null=True)
     created = models.DateTimeField(_("Added On"), auto_now_add=True)
     updated = models.DateTimeField(_("Edited On"), auto_now=True)
+
+    def get_average_rating(self):
+        reviews = self.reviews.all()
+        if reviews.exists():
+            return sum([reviews.rating for review in reviews]/reviews.count())
+        return 0
 
     def save(self, *args, **kwargs):
         if not self.sku:
@@ -212,9 +220,12 @@ class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     product = models.ForeignKey(Product,related_name="reviews", on_delete=models.CASCADE)
     rating = models.FloatField() 
-    comment = models.TextField()
+    review_text = models.TextField(_("Review Text"),max_length=250, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    def __str__(self):
+        return f'Review for {self.product.slug} by {self.user.full_name}'
+
     class Meta:
         unique_together = ('user', 'product')  
         indexes = [

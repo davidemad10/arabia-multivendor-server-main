@@ -20,9 +20,14 @@ class CategoryAdmin(TranslatableAdmin, MPTTModelAdmin):
         return {'slug': ('name',)}  
 
 
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('id','product','user','rating','created_at')
+    readonly_fields=['created_at']
+
+
 admin.site.register(Brand,TranslatableAdmin)
 admin.site.register(Product,TranslatableAdmin)
 admin.site.register(Category, CategoryAdmin)
-admin.site.register(Review)
+admin.site.register(Review , ReviewAdmin)
 admin.site.register(Color,TranslatableAdmin)
 admin.site.register(Size,TranslatableAdmin)

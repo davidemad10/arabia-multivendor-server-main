@@ -6,7 +6,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Case, ExpressionWrapper, F, FloatField, Sum, When
 from django_filters.rest_framework import DjangoFilterBackend
 # from openpyxl import load_workbook
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, status, viewsets,permissions
 from rest_framework.generics import (
     DestroyAPIView,
     GenericAPIView,
@@ -17,15 +17,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .filters import ProductFilter
 from .mixins import CheckProductManagerGroupMixin, CheckSupplierAdminGroupMixin
-from .models import Brand,Category,Product
+from .models import Brand,Category,Product,Review
 from .pagination import ProductPagination
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
     ProductSerializer,
+    ReviewSerializer,
 )
 from django.http import Http404
 from rest_framework.decorators import action
+from django.utils.translation import activate
+activate('en')  # or another language code
 
 
 class CategoryViewSet(viewsets.ViewSet):
@@ -86,6 +89,7 @@ class ProductViewSet( viewsets.ModelViewSet):
             except Category.DoesNotExist:
                     raise Http404 ('Category not found.')
         return queryset
+
     
     @action(detail=True, methods=["get"])
     def you_may_like(self, request, pk=None):
@@ -107,3 +111,11 @@ class ProductViewSet( viewsets.ModelViewSet):
         except Product.DoesNotExist:
             raise Http404('Product not found.')
 
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes=[permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        # Automatically assign the user and product when creating a review
+        serializer.save(user=self.request.user)
