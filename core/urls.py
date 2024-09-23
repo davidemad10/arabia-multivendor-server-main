@@ -33,7 +33,7 @@ urlpatterns = i18n_patterns(
 #====================================================
     path('rosetta/', include('rosetta.urls')),
     path("api/account/", include("account.urls", namespace="account")),
-    path("api/product/", include("product.urls", namespace="product")),
+    path("api/products/", include("product.urls", namespace="products")),
     path("api/advertisement/", include("advertisement.urls", namespace="advertisement")),
     path("api/order/", include("order.urls", namespace="order")),
     # path("api/contact/", include("contact.urls", namespace="contact")),
