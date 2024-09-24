@@ -114,8 +114,8 @@ class Product(TranslatableModel):
     description=models.TextField(_("Description"))
     )
 
-    color=models.ForeignKey(Color,related_name="products",on_delete=models.SET_NULL,null=True,blank=True)
-    size=models.ForeignKey(Size,related_name="products",on_delete=models.SET_NULL,null=True,blank=True)
+    color=models.ManyToManyField(Color,related_name="products",blank=True)
+    size=models.ManyToManyField(Size,related_name="products",blank=True)
 
     sku = models.CharField(primary_key=True, max_length=255, unique=True, blank=True)
     supplier = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Supplier"))
