@@ -119,3 +119,5 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Automatically assign the user and product when creating a review
         serializer.save(user=self.request.user)
+
+        

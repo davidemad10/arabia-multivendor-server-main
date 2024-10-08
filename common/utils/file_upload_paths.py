@@ -59,7 +59,7 @@ def product_images_path(instance, filename):
     return os.path.join(
         "product",
         "images",
-        "%s" % instance.name,
+        "%s" % instance.product.name,
         filename,
     )
 

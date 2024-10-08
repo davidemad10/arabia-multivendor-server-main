@@ -1,6 +1,6 @@
 from parler_rest.serializers import TranslatableModelSerializer
 from parler_rest.fields import TranslatedFieldsField
-from .models import Brand,Category,Product,Review,Color,Size
+from .models import Brand,Category,Product,Review,Color,Size,ProductImage
 from rest_framework import serializers
 
 class BrandSerializer(TranslatableModelSerializer):
@@ -43,35 +43,39 @@ class SizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Size
         fields = ['id', 'name']
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=ProductImage
+        fields=['id','image','alt_text']
 
 class ProductSerializer(TranslatableModelSerializer):
-    productName = serializers.CharField(source="translations.name")
+    productName = serializers.CharField(source="name")
     category = CategorySerializer()
     brand = BrandSerializer()
     translations = TranslatedFieldsField(shared_model=Product)
     description = serializers.CharField(source="translations.description" , read_only=True)
     specifications = serializers.JSONField()
     reviews = ReviewSerializer(many=True, read_only=True)
-    # Add image fields
-    thumbnail = serializers.ImageField(required=False, allow_null=True)
-    image1 = serializers.ImageField(required=False, allow_null=True)
-    image2 = serializers.ImageField(required=False, allow_null=True)
-    image3 = serializers.ImageField(required=False, allow_null=True)
-    image4 = serializers.ImageField(required=False, allow_null=True)
+    images=ProductImageSerializer(many=True, read_only=True)
     color = ColorSerializer(many=True, read_only=True)
     size = SizeSerializer(many=True, read_only=True)
+    image_uploads = serializers.ListField(
+        child=serializers.ImageField(), write_only=True, required=False
+    )
     class Meta:
         model = Product
         fields = "__all__"
-        
-    
-    # def create(self, validated_data):
-    #     reviews_data = validated_data.pop('reviews', [])
-    #     product = Product.objects.create(**validated_data)
-    #     for review_data in reviews_data:
-    #         Review.objects.create(product=product, **review_data)
-    #     return product
-    # def update(self, instance, validated_data):
-    #     reviews_data = validated_data.pop('reviews', [])
-    #     instance = super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        reviews_data = validated_data.pop('reviews', [])
+        image_data = validated_data.pop('image_uploads', [])
+        product = Product.objects.create(**validated_data)
+        for review_data in reviews_data:
+            Review.objects.create(product=product, **review_data)
+        for image in image_data:
+            ProductImage.objects.create(product=product, image=image)
+        return product
+    def update(self, instance, validated_data):
+        reviews_data = validated_data.pop('reviews', [])
+        instance = super().update(instance, validated_data)
 

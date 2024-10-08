@@ -119,7 +119,7 @@ class Product(TranslatableModel):
 
     sku = models.CharField(primary_key=True, max_length=255, unique=True, blank=True)
     supplier = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Supplier"))
-    slug = models.SlugField(unique=False, null=True, blank=True)
+    slug = models.SlugField(unique=True, null=True, blank=True)
     price_before_discount = models.DecimalField(
         _("Price before discount"), max_digits=10, decimal_places=2, null=True, blank=True
     )
@@ -145,41 +145,6 @@ class Product(TranslatableModel):
     total_sold = models.IntegerField(_("Total Sold"), default=0)
     total_views = models.IntegerField(_("Total Views"), default=0)
     is_available = models.BooleanField(_("Is Available ?"), default=True)
-    thumbnail = models.ImageField(
-        _("Thumbnail"),
-        upload_to=product_images_path,
-        null=True,
-        blank=True,
-        validators=[image_extension_validator],
-    )
-    image1 = models.ImageField(
-        _("Image 1"),
-        upload_to=product_images_path,
-        blank=True,
-        null=True,
-        validators=[image_extension_validator],
-    )
-    image2 = models.ImageField(
-        _("Image 2"),
-        upload_to=product_images_path,
-        blank=True,
-        null=True,
-        validators=[image_extension_validator],
-    )
-    image3 = models.ImageField(
-        _("Image 3"),
-        upload_to=product_images_path,
-        blank=True,
-        null=True,
-        validators=[image_extension_validator],
-    )
-    image4 = models.ImageField(
-        _("Image 4"),
-        upload_to=product_images_path,
-        blank=True,
-        null=True,
-        validators=[image_extension_validator],
-    )
     specifications = models.JSONField(_("Specifications"), blank=True, null=True)
     created = models.DateTimeField(_("Added On"), auto_now_add=True)
     updated = models.DateTimeField(_("Edited On"), auto_now=True)
@@ -187,7 +152,7 @@ class Product(TranslatableModel):
     def get_average_rating(self):
         reviews = self.reviews.all()
         if reviews.exists():
-            return sum([reviews.rating for review in reviews]/reviews.count())
+            return sum([reviews.rating for review in reviews])/reviews.count()
         return 0
 
     def save(self, *args, **kwargs):
@@ -214,7 +179,19 @@ class Product(TranslatableModel):
             models.Index(fields=['price_before_discount', 'price_after_discount']),  # فهرس مركب على حقلين
         ]
     
-    
+class ProductImage(models.Model):
+    product=models.ForeignKey(Product, related_name='images',on_delete=models.CASCADE)
+    image= models.ImageField(
+        _("Image"),
+        upload_to=product_images_path,
+        blank=True,
+        null=True,
+        validators=[image_extension_validator]
+    )
+    alt_text=models.CharField(_('Alternative Text'), max_length=255,blank=True,null=True)
+
+    def __str__(self):
+        return f"Image for {self.product.sku}"
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
