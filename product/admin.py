@@ -15,6 +15,7 @@ class CategoryAdminForm(MPTTAdminForm, TranslatableModelForm):
 
 class CategoryAdmin(TranslatableAdmin, MPTTModelAdmin):
     form = CategoryAdminForm
+    list_display = ('id', 'name', 'slug')
 
     def get_prepopulated_fields(self, request, obj=None):
         return {'slug': ('name',)}  

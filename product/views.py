@@ -120,4 +120,3 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Automatically assign the user and product when creating a review
         serializer.save(user=self.request.user)
 
-        

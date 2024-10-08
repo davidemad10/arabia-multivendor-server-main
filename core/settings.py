@@ -160,6 +160,15 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+PARLER_LANGUAGES = {
+    None: (
+        {'code': 'en', 'fallbacks': ['ar']},  # Add your desired fallback languages
+        {'code': 'ar', 'fallbacks': ['en']},
+    ),
+    'default': {
+        'fallbacks': ['en'],  # Default fallback
+    }
+}
 
 LANGUAGE_CODE = "en"
 TIME_ZONE = "UTC"
