@@ -10,6 +10,7 @@ urlpatterns = [
     path("token/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("buyer/register/", views.BuyerRegisterView.as_view(), name="buyer-register"),
     path("supplier/register/", views.SupplierRegisterView.as_view(), name="supplier-register"),
+    path('verify-otp/',  views.VerifyOTPView.as_view(), name='verify-otp'),
     # path("supplier/list/", views.SupplierListView.as_view(), name="supplier-list"),
     # path("buyer/email-verify/", views.VerifyEmail.as_view(), name="activate"),
     # path(

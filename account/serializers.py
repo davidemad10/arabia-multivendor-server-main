@@ -14,7 +14,8 @@ class UserSerializer(serializers.ModelSerializer):
     # shipping_address = serializers.PrimaryKeyRelatedField(
     #     queryset=Address.objects.all(), many=False, required=False, allow_null=True
     # )
-
+    password1=serializers.CharField(write_only=True,style={'input_type':'password'}, required=False)
+    password2=serializers.CharField(write_only=True,style={'input_type':'password'}, required=False)
     created_date = serializers.SerializerMethodField(read_only=True)
     created_time = serializers.SerializerMethodField(read_only=True)
 
@@ -24,14 +25,49 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "email",
             "full_name",
-            "is_buyer",
-            "is_supplier",
             "created_date",
             "created_time",
-            "password",
+            "password1",
+            "password2",
+            "phone",
         )
-
-
+        extra_kwargs = {
+            'full_name': {'required': True, 'min_length': 1, 'max_length': 20},
+            'email': {'required': True},
+            'phone': {'required': False, 'allow_blank': True},
+        }
+    def validate_full_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Username cannot be empty")
+        if len(value)>20:
+            raise serializers.ValidationError("Username cannot be more than 20 characters")
+        if User.objects.filter(full_name=value).exists():
+            raise  serializers.ValidationError("Username already exists")
+        return value
+    def validate_email(self,value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
+        return  value
+    def validate(self, data):
+        password1=data.get('password1')
+        password2=data.get('password2')
+        if password1 or password2:
+            if not password1:
+                raise serializers.ValidationError({"password1":"password is required."})
+            if not  password2:
+                raise serializers.ValidationError({"password2":"password confirmation is required."})
+            if password1 != password2:
+                raise serializers.ValidationError({"password2":"passwords do not match."})
+        return data
+    def create(self,validated_data):
+        password=validated_data.pop('password1',None)
+        validated_data.pop('password2',None)
+        user=User.objects.create_user(**validated_data)
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+    
     def get_created_date(self, obj):
         return obj.created.date()
 

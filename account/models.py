@@ -39,8 +39,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_supplier = models.BooleanField(_("Is Supplier"), default=False)
     is_buyer = models.BooleanField(_("Is Buyer"), default=False)
 
-    # phone = models.CharField(_("Phone Number"), max_length=20)
-
+    phone = models.CharField(_("Phone Number"), max_length=20,default='')
+    otp = models.CharField(max_length=6 , null=True , blank=True)
     shipping_address = models.ForeignKey(
         Address,
         related_name="user_shipping",

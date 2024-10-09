@@ -45,10 +45,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         response_data = response.data
         token = response_data.get('access')
         refresh_token = response_data.get('refresh')
-
-        response = JsonResponse({'done successfully': 'done successfully'})
+        # Set cookies for tokens
         response.set_cookie('access_token', token, httponly=True, secure=True, samesite='Lax')
         response.set_cookie('refresh_token', refresh_token, httponly=True, secure=True, samesite='Lax')
+        # Return original response data
+        response = JsonResponse({'done successfully': 'done successfully', 'tokens':response_data})
         return response
 
 
@@ -64,38 +65,59 @@ class BuyerRegisterView(CreateAPIView):
         # Validate the serializer
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        temp_password = ''.join(random.choices(string.digits, k=6))
-
+        
         email = data.get('email')
+        password1 = data.get('password1')
         
         user = User.objects.filter(email__iexact=email).first()
 
         if user:
-            user.set_password(temp_password)
-            user.save()
+            return Response({'message': 'Email already registered.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             user = serializer.save(
                 is_buyer=True,
-                is_active=True, 
+                is_supplier=False,
+                is_active=False, 
             )
-            user.set_password(temp_password)
+            user.set_password(password1)
             user.save()
             BuyerProfile.objects.create(user=user)
 
-        send_temporary_password(
-            temp_password,
-            "emails/temp_password.html",
-            _("Arbia Account Activation"),
-            email,
-        )
-        return Response({
-            'message': 'A temporary password has been sent to your email address.',
-            'email': email
-        }, status=status.HTTP_201_CREATED)
+        
+            temp_password = ''.join(random.choices(string.digits, k=6))
+            user.otp = temp_password 
+            user.save() 
+
+            send_temporary_password(
+                temp_password,
+                "emails/temp_password.html",
+                _("Arbia Account Activation"),
+                email,
+            )
+            return Response({
+                'message': 'A temporary password has been sent to your email address.',
+                'email': email
+            }, status=status.HTTP_201_CREATED)
 
 
 
+class VerifyOTPView(GenericAPIView):
+    def post(self, request):
+        email = request.data.get('email')
+        otp = request.data.get('otp')
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+        if user.otp == otp:
+            user.is_active = True  # Activate the user
+            user.otp = None  # Clear the OTP after verification
+            user.save()
+            return Response({'message': 'Email successfully activated.'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
 
 class SupplierRegisterView(CreateAPIView):
     queryset = User.objects.all()
