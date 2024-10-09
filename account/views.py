@@ -23,6 +23,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 # from stats.models import Stats
 
+
 # from .mixins import CheckBuyerAdminGroupMixin, CheckSupplierAdminGroupMixin
 from .models import BuyerProfile, SupplierProfile, User,SupplierDocuments
 from .serializers import (
@@ -69,37 +70,33 @@ class BuyerRegisterView(CreateAPIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        email=data.get('email')
         password1 = data.get('password1')
         
-        try:
-            validate_password(password1)
-        except ValidationError as e:
-            return Response({'password_error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
-            
-            user = serializer.save(
-                is_buyer=True,
-                is_supplier=False,
-                is_active=False, 
-            )
-            user.set_password(password1)
-            user.save()
-            BuyerProfile.objects.create(user=user)
+        user = serializer.save(
+            is_buyer=True,
+            is_supplier=False,
+            is_active=False, 
+        )
+        user.set_password(password1)
+        user.save()
+        BuyerProfile.objects.create(user=user)
 
-        
-            temp_password = ''.join(random.choices(string.digits, k=6))
-            user.otp = temp_password 
-            user.save() 
+    
+        temp_password = ''.join(random.choices(string.digits, k=6))
+        user.otp = temp_password 
+        user.save() 
 
-            send_temporary_password(
-                temp_password,
-                "emails/temp_password.html",
-                _("Arbia Account Activation"),
-                email,
-            )
-            return Response({
-                'message': 'A temporary password has been sent to your email address.',
-                'email': email
-            }, status=status.HTTP_201_CREATED)
+        send_temporary_password(
+            temp_password,
+            "emails/temp_password.html",
+            _("Arbia Account Activation"),
+            email,
+        )
+        return Response({
+            'message': 'A temporary password has been sent to your email address.',
+            'email': email
+        }, status=status.HTTP_201_CREATED)
 
 
 
