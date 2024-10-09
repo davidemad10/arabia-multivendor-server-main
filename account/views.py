@@ -30,7 +30,10 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     # StatsSerializer,
     UserSerializer,
-    SupplierDocumentsSerializer
+    SupplierDocumentsSerializer,
+    ResetPasswordWithOTPSerializer,
+    RequestotpSerializer,
+    VerfiyEmailserializer,
 )
 from .utils import send_temporary_password
 import random
@@ -38,42 +41,41 @@ import string
 from django.http import JsonResponse
 from django.db import transaction
 
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     def post(self, request, *args, **kwargs):
-        response = super().post(request, *args, **kwargs)
-        response_data = response.data
-        token = response_data.get('access')
-        refresh_token = response_data.get('refresh')
-        # Set cookies for tokens
-        response.set_cookie('access_token', token, httponly=True, secure=True, samesite='Lax')
-        response.set_cookie('refresh_token', refresh_token, httponly=True, secure=True, samesite='Lax')
-        # Return original response data
-        response = JsonResponse({'done successfully': 'done successfully', 'tokens':response_data})
-        return response
+            response = super().post(request, *args, **kwargs)
+            response_data = response.data
+            token = response_data.get('access')
+            refresh_token = response_data.get('refresh')
+            # Set cookies for tokens
+            response.set_cookie('access_token', token, httponly=True, secure=True, samesite='Lax')
+            response.set_cookie('refresh_token', refresh_token, httponly=True, secure=True, samesite='Lax')
+            # Return original response data
+            response = JsonResponse({'done successfully': 'done successfully', 'tokens':response_data})
+            return response
+
 
 
 class BuyerRegisterView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     
-    
-
     def create(self, request, *args, **kwargs):
         data = request.data
         serializer = self.get_serializer(data=data)
         # Validate the serializer
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-        email = data.get('email')
+
         password1 = data.get('password1')
         
-        user = User.objects.filter(email__iexact=email).first()
-
-        if user:
-            return Response({'message': 'Email already registered.'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+        try:
+            validate_password(password1)
+        except ValidationError as e:
+            return Response({'password_error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+            
             user = serializer.save(
                 is_buyer=True,
                 is_supplier=False,
@@ -102,9 +104,12 @@ class BuyerRegisterView(CreateAPIView):
 
 
 class VerifyOTPView(GenericAPIView):
+    serializer_class= VerfiyEmailserializer
     def post(self, request):
-        email = request.data.get('email')
-        otp = request.data.get('otp')
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True) 
+        email = serializer.validated_data['email']
+        otp = serializer.validated_data['otp']
         
         try:
             user = User.objects.get(email=email)
@@ -112,12 +117,62 @@ class VerifyOTPView(GenericAPIView):
             return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         if user.otp == otp:
-            user.is_active = True  # Activate the user
+            user.is_active = True  
             user.otp = None  # Clear the OTP after verification
             user.save()
             return Response({'message': 'Email successfully activated.'}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
+class RequestOTPview(GenericAPIView):
+    serializer_class=RequestotpSerializer
+    def post(self , request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True) 
+        email = serializer.validated_data['email']
+        try:
+            user=User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        new_otp = ''.join(random.choices(string.digits, k=6))
+        user.otp = new_otp 
+        user.save()
+        request.session['reset_email'] = email 
+        send_temporary_password(
+                new_otp,
+                "emails/temp_password.html",
+                _("Arbia Account Activation"),
+                email,
+            )
+        return Response({
+            'message': 'A new OTP has been sent to your email address.',
+            'email': email
+        }, status=status.HTTP_200_OK)
+
+class ResetPasswordWithOTPview(GenericAPIView):
+    serializer_class = ResetPasswordWithOTPSerializer
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True) 
+        otp=serializer.validated_data['otp']
+        new_password=serializer.validated_data['new_password']
+        email=request.session.get('reset_email')
+        if not email:
+            return Response({'message': 'Session expired. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user=User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if user.otp == otp:
+            user.set_password(new_password)
+            user.otp=None
+            user.save()
+            request.session.pop('reset_email',None)
+            return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class SupplierRegisterView(CreateAPIView):
     queryset = User.objects.all()

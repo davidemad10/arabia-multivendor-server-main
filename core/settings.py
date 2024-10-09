@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     "parler",
     "mptt",
     "modeltranslation",
-    "rest_framework_swagger"
+    "rest_framework_swagger",
+    "rest_framework.authtoken",
     
 ]
 

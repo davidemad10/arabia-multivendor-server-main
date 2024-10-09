@@ -1,6 +1,6 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-
+from dj_rest_auth.views import  LogoutView
 from . import views
 
 app_name = "account"
@@ -11,6 +11,9 @@ urlpatterns = [
     path("buyer/register/", views.BuyerRegisterView.as_view(), name="buyer-register"),
     path("supplier/register/", views.SupplierRegisterView.as_view(), name="supplier-register"),
     path('verify-otp/',  views.VerifyOTPView.as_view(), name='verify-otp'),
+    path('logout/', LogoutView.as_view(), name='rest_logout'),
+    path('passwordrestotp/',views.RequestOTPview.as_view(),name='requestOTP'),
+    path('passwordresetconfirm/',views.ResetPasswordWithOTPview.as_view(),name='resetpassword')
     # path("supplier/list/", views.SupplierListView.as_view(), name="supplier-list"),
     # path("buyer/email-verify/", views.VerifyEmail.as_view(), name="activate"),
     # path(

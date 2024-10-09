@@ -2,13 +2,10 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Address, BuyerProfile, SupplierProfile,SupplierDocuments
+from rest_framework.exceptions import ValidationError as DjangoValidationError
+from django.contrib.auth.password_validation import validate_password
+
 User = get_user_model()
-
-
-
-
-
-
 
 class UserSerializer(serializers.ModelSerializer):
     # shipping_address = serializers.PrimaryKeyRelatedField(
@@ -34,20 +31,25 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'full_name': {'required': True, 'min_length': 1, 'max_length': 20},
             'email': {'required': True},
-            'phone': {'required': False, 'allow_blank': True},
+            'phone': {'required': True, 'allow_blank': False},
         }
     def validate_full_name(self, value):
         if not value.strip():
             raise serializers.ValidationError("Username cannot be empty")
         if len(value)>20:
             raise serializers.ValidationError("Username cannot be more than 20 characters")
-        if User.objects.filter(full_name=value).exists():
-            raise  serializers.ValidationError("Username already exists")
         return value
     def validate_email(self,value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists")
         return  value
+    def validate_phone(self, value):
+        if len(value) != 11:
+                raise serializers.ValidationError("Phone number must be exactly 11 digits.")
+        # Check if the phone number is not empty
+        if value and User.objects.filter(phone=value).exists():
+            raise serializers.ValidationError("Phone number already exists")
+        return value
     def validate(self, data):
         password1=data.get('password1')
         password2=data.get('password2')
@@ -58,6 +60,10 @@ class UserSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"password2":"password confirmation is required."})
             if password1 != password2:
                 raise serializers.ValidationError({"password2":"passwords do not match."})
+            try:
+                validate_password(password1)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError({"password1": list(e.messages)})
         return data
     def create(self,validated_data):
         password=validated_data.pop('password1',None)
@@ -141,3 +147,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token["profile_picture"] = None
 
         return token
+class VerfiyEmailserializer(serializers.Serializer):
+    email=serializers.EmailField(max_length=255)
+    otp=serializers.CharField(max_length=6)
+
+class RequestotpSerializer(serializers.Serializer):
+    email=serializers.EmailField(max_length=255)
+
+class ResetPasswordWithOTPSerializer(serializers.Serializer):
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(write_only=True)
