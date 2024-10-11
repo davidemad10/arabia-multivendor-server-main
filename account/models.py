@@ -28,13 +28,11 @@ class Address(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
-
     email = models.EmailField(_("Email"), max_length=255, unique=True)
     full_name = models.CharField(_("Full Name"), max_length=255,null=True,blank=True)
 
     is_active = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-
     is_staff = models.BooleanField(_("Is Admin"), default=False)
     is_supplier = models.BooleanField(_("Is Supplier"), default=False)
     is_buyer = models.BooleanField(_("Is Buyer"), default=False)
@@ -76,7 +74,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 from product.models import Product
 class BuyerProfile(models.Model):
     user = models.OneToOneField(User, related_name="buyer_profile", on_delete=models.CASCADE)
-    phone = models.CharField(_("Phone Number"), max_length=20,null=True,blank=True)
     bank_account = models.CharField(_("Bank account"), max_length=50,null=True,blank=True)
     instapay_account = models.CharField(_("Instapay account"), max_length=50,null=True,blank=True)
     electronic_wallet = models.CharField(_("Electronic wallet"), max_length=50,null=True,blank=True)
@@ -105,18 +102,18 @@ class Favorite(models.Model):
 
 
 class SupplierDocuments (models.Model):
+    user=models.ForeignKey(User,on_delete=models.CASCADE,related_name='supplier_documents', null=True, blank=True)
     front_id=models.FileField(_("Front side of ID"),upload_to=suppliers_documents_path)
     back_id=models.FileField(_("Back side of ID"),upload_to=suppliers_documents_path)
     tax_card=models.FileField(_("Tax card"),upload_to=suppliers_documents_path)
     commercial_record=models.FileField(_("Commercial Record"),upload_to=suppliers_documents_path)
     bank_statement=models.FileField(_("Bank statement"),upload_to=suppliers_documents_path)
     def __str__(self) -> str:
-        return self.supplier_documents.user.email
+        return self.user.email
 
 
 class SupplierProfile(models.Model):
     user = models.OneToOneField(User, related_name="supplier_profile", on_delete=models.CASCADE)
-    phone = models.CharField(_("Phone Number"), max_length=20,null=True,blank=True)
     entity_address= models.ForeignKey(Address,related_name="entity_address",on_delete=models.SET_NULL,null=True)
     bank_account = models.CharField(_("Bank account"), max_length=50,null=True,blank=True)
     instapay_account = models.CharField(_("Instapay account"), max_length=50,null=True,blank=True)

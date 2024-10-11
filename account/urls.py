@@ -12,18 +12,16 @@ urlpatterns = [
     path("supplier/register/", views.SupplierRegisterView.as_view(), name="supplier-register"),
     path('verify-otp/',  views.VerifyOTPView.as_view(), name='verify-otp'),
     path('logout/', LogoutView.as_view(), name='rest_logout'),
-    path('passwordrestotp/',views.RequestOTPview.as_view(),name='requestOTP'),
-    path('passwordresetconfirm/',views.ResetPasswordWithOTPview.as_view(),name='resetpassword')
+    path('passwordresetotp/',views.RequestOTPview.as_view(),name='requestOTP'),
+    path('passwordresetotpverfiy/',views.ResetPasswordWithOTPview.as_view(),name='resetpassword'),
+    path('passwordresetconfirm/',views.ResetPasswordView.as_view(),name='resetpassword'),
+    path('users/',views.UserListView.as_view(), name='users-list'),
+    path('users/<uuid:pk>/',views.UserDetailView.as_view(), name='users-detail'),
     # path("supplier/list/", views.SupplierListView.as_view(), name="supplier-list"),
-    # path("buyer/email-verify/", views.VerifyEmail.as_view(), name="activate"),
     # path(
     #     "buyer/email-verify-refresh/",
     #     views.RefreshBuyerActivationLink.as_view(),
     #     name="activate-refresh",
-    # ),
-    # path("password/reset/", views.PasswordResetView.as_view(), name="reset"),
-    # path(
-    #     "password/reset/confirm", views.PasswordResetConfirmView.as_view(), name="reset-confirm"
     # ),
     # path("show_user_stats/", views.ShowUserStatsView.as_view()),
     # path("profile/", views.ProfileView.as_view(), name="profile"),

@@ -44,8 +44,10 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email already exists")
         return  value
     def validate_phone(self, value):
-        if len(value) != 11:
-                raise serializers.ValidationError("Phone number must be exactly 11 digits.")
+        if not value.isdigit():
+            raise serializers.ValidationError("Phone number must contain only digits.")
+        if len(value) > 15:
+                raise serializers.ValidationError("Phone number can not be more than 15 digits.")
         # Check if the phone number is not empty
         if value and User.objects.filter(phone=value).exists():
             raise serializers.ValidationError("Phone number already exists")
@@ -81,32 +83,31 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.created.time()
 
 
-    # def to_representation(self, instance):
-    #     representation = super().to_representation(instance)
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["is_buyer"] = instance.is_buyer
+        representation["is_supplier"] = instance.is_supplier
+        try:
+            buyer_profile = instance.buyer_profile
+            profile_serializer = BuyerProfileSerializer(instance=buyer_profile)
+            representation["profile"] = profile_serializer.data
+        except BuyerProfile.DoesNotExist:
+            pass
 
-    #     try:
-    #         buyer_profile = instance.buyer_profile
-    #         profile_serializer = BuyerProfileSerializer(instance=buyer_profile)
-    #         representation["profile"] = profile_serializer.data
-    #     except BuyerProfile.DoesNotExist:
-    #         pass
+        try:
+            supplier_profile = instance.supplier_profile
+            profile_serializer = SupplierProfileSerializer(instance=supplier_profile)
+            representation["profile"] = profile_serializer.data
+        except SupplierProfile.DoesNotExist:
+            pass
 
-    #     try:
-    #         supplier_profile = instance.supplier_profile
-    #         profile_serializer = SupplierProfileSerializer(instance=supplier_profile)
-    #         representation["profile"] = profile_serializer.data
-    #     except SupplierProfile.DoesNotExist:
-    #         pass
-
-    #     representation["shipping_address"] = AddressSerializer(
-    #         instance=instance.shipping_address
-    #     ).data
-    #     representation["billing_address"] = AddressSerializer(
-    #         instance=instance.billing_address
-    #     ).data
-
-    #     return representation
-
+        representation["shipping_address"] = AddressSerializer(
+            instance=instance.shipping_address
+        ).data
+        representation["billing_address"] = AddressSerializer(
+            instance=instance.billing_address
+        ).data
+        return representation
 
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -114,12 +115,39 @@ class AddressSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class SupplierDocumentsSerializer(serializers.ModelSerializer):
+    front_id = serializers.FileField(required=True)
+    back_id = serializers.FileField(required=True)
+    tax_card = serializers.FileField(required=True)
+    commercial_record = serializers.FileField(required=True)
+    bank_statement = serializers.FileField(required=True)
     class Meta:
         model = SupplierDocuments
+        fields = ['user','front_id','back_id','tax_card','commercial_record','bank_statement']
+
+
+class BuyerProfileSerializer(serializers.ModelSerializer):
+    phone= serializers.CharField(source='user.phone',max_length=15)
+    class Meta:
+        model=BuyerProfile
+        fields=['id','phone','bank_account','instapay_account','electronic_wallet','profile_picture','user','favorite_products']
+
+class SupplierProfileSerializer(serializers.ModelSerializer):
+    phone= serializers.CharField(source='user.phone',max_length=15)
+    entity_address=AddressSerializer()
+    documents=SupplierDocumentsSerializer()
+    class Meta:
+        model=SupplierProfile
+        fields=['id','phone','user','entity_address','bank_account','instapay_account','electronic_wallet','documents','profile_picture']
+
+
+
+class SupplierRegistrationSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    documents = SupplierDocumentsSerializer()
+    address = AddressSerializer()
+    class Meta:
+        model=SupplierProfile
         fields = "__all__"
-
-
-
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -147,6 +175,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token["profile_picture"] = None
 
         return token
+
 class VerfiyEmailserializer(serializers.Serializer):
     email=serializers.EmailField(max_length=255)
     otp=serializers.CharField(max_length=6)
@@ -156,4 +185,13 @@ class RequestotpSerializer(serializers.Serializer):
 
 class ResetPasswordWithOTPSerializer(serializers.Serializer):
     otp = serializers.CharField(max_length=6)
-    new_password = serializers.CharField(write_only=True)
+
+class  ResetPasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(write_only=True, required=True)
+    confirm_password=serializers.CharField(write_only=True, required=True)
+    def  validate(self, data):
+        new_password=data.get('new_password')
+        confirm_password=data.get('confirm_password')
+        if new_password  != confirm_password:
+            raise serializers.ValidationError('The  two password fields must match.')
+        return data
