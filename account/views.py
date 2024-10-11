@@ -31,10 +31,12 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     # StatsSerializer,
     UserSerializer,
+    SupplierRegistrationSerializer,
     SupplierDocumentsSerializer,
     ResetPasswordWithOTPSerializer,
     RequestotpSerializer,
     VerfiyEmailserializer,
+    ResetPasswordSerializer,
 )
 from .utils import send_temporary_password
 import random
@@ -152,7 +154,6 @@ class ResetPasswordWithOTPview(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True) 
         otp=serializer.validated_data['otp']
-        new_password=serializer.validated_data['new_password']
         email=request.session.get('reset_email')
         if not email:
             return Response({'message': 'Session expired. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -161,56 +162,155 @@ class ResetPasswordWithOTPview(GenericAPIView):
         except User.DoesNotExist:
             return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
         if user.otp == otp:
-            user.set_password(new_password)
-            user.otp=None
-            user.save()
-            request.session.pop('reset_email',None)
-            return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
+            request.session['otp_verified']=True
+            return  Response({'message': 'OTP verified successfully.'}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
 
+class ResetPasswordView(GenericAPIView):
+    serializer_class=ResetPasswordSerializer
+    def post(self, request):
+        if not request.session.get('otp_verified'):
+            return Response({'message': 'OTP not verified. Please verify the OTP first.'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer=self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_password=serializer.validated_data['new_password']
+        email=request.session.get('reset_email')
+        if not email:
+            return Response({'message': 'Session expired. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user=User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        user.set_password(new_password)
+        user.otp=None
+        user.save()
 
+        request.session.pop('reset_email',None)
+        request.session.pop('otp_verified',None)
+        return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
+
+
+
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.parsers import MultiPartParser , FormParser
+from drf_yasg import openapi
 
 class SupplierRegisterView(CreateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = SupplierRegistrationSerializer
+    parser_classes = (MultiPartParser , FormParser)
+    def get_parsers(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return []
 
+        return super().get_parsers()
+    @swagger_auto_schema(
+        request_body=SupplierRegistrationSerializer,
+        responses={
+            201: openapi.Response("User created", SupplierRegistrationSerializer),
+            400: "Bad Request"
+        }
+    )
     def create(self, request, *args, **kwargs):
         data = request.data
-        user_serializer = self.get_serializer(data=data)
+        files=request.FILES
+        print(data)
+        # Manually extracting flattened user data
+        user_data = {
+            "email": data.get('user[email]'),
+            "full_name": data.get('user[full_name]'),
+            "password1": data.get('user[password1]'),
+            "password2": data.get('user[password2]'),
+            "phone": data.get('user[phone]'),
+        }
 
-        if user_serializer.is_valid():
-            documents_serializer = SupplierDocumentsSerializer(data=data)
-            address_serializer = AddressSerializer(data=data)
+        # Extract address data
+        address_data = {
+            "country": data.get('address[country]'),
+            "state": data.get('address[state]'),
+            "city": data.get('address[city]'),
+            "postal_code": data.get('address[postal_code]'),
+            "address_1": data.get('address[address_1]'),
+            "address_2": data.get('address[address_2]'),
+        }
 
-            if documents_serializer.is_valid() and address_serializer.is_valid():
+        # Extract documents files
+        documents_data = {
+            "front_id": files.get('documents[front_id]'),
+            "back_id": files.get('documents[back_id]'),
+            "tax_card": files.get('documents[tax_card]'),
+            "commercial_record": files.get('documents[commercial_record]'),
+            "bank_statement": files.get('documents[bank_statement]'),
+        }
 
+
+        # Check for required fields
+        if not user_data['email']:
+            print(user_data)
+            return Response({"user": "This field is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not documents_data:
+            return Response({"documents": "This field is required."}, status=status.HTTP_400_BAD_REQUEST)
+        if not address_data['country']:
+            return Response({"address": "This field is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user_serializer = UserSerializer(data=user_data)
+        documents_serializer = SupplierDocumentsSerializer(data=documents_data)
+        address_serializer = AddressSerializer(data=address_data)
+
+        if user_serializer.is_valid() and documents_serializer.is_valid() and address_serializer.is_valid():
+            try:
                 with transaction.atomic():
+                    # Save Address
                     address = address_serializer.save()
-                    documents = documents_serializer.save()
-                    
-                    user = user_serializer.save(
-                        is_supplier=True,
-                        is_active=False,
-                    )
-                    user.save()
 
+                    # Save User
+                    user = user_serializer.save(
+                        is_buyer=False, 
+                        is_supplier=True,
+                        is_active=False
+                    )
+
+                    # Save Supplier Documents
+                    documents = documents_serializer.save(user=user)
+
+                    # Save Supplier Profile
                     SupplierProfile.objects.create(
                         user=user,
                         documents=documents,
                         entity_address=address
                     )
 
-                    return Response(status=status.HTTP_201_CREATED)
-            else:
-                return Response(
-                    {
-                        "documents_errors": documents_serializer.errors,
-                        "address_errors": address_serializer.errors
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                    return Response({"message": "Supplier registered successfully!"}, status=status.HTTP_201_CREATED)
+
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Return all errors for invalid serializers
+            return Response({
+                "user_errors": user_serializer.errors,
+                "documents_errors": documents_serializer.errors,
+                "address_errors": address_serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
+# class SupplierRegisterView(APIView):
+#     def post(self, request, *args, **kwargs):
+#         serializer = SupplierRegistrationSerializer(data=request.data)
+#         print(serializer)
+#         if serializer.is_valid():
+#             print(serializer.errors)
+#             # Save the supplier profile and related documents
+#             serializer.save()
+#             return Response({"message": "Supplier registered successfully."}, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class UserListView(ListAPIView):
+    queryset = User.objects.all()
+    serializer_class=UserSerializer
+
+class UserDetailView(RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
