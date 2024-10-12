@@ -44,8 +44,12 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email already exists")
         return  value
     def validate_phone(self, value):
-        if not value.isdigit():
-            raise serializers.ValidationError("Phone number must contain only digits.")
+        if value.startswith('+'):
+            number = value[1:]
+        else:
+            number = value
+        if not number.isdigit():
+            raise serializers.ValidationError("Phone number must contain only digits, except for the leading '+'.")
         if len(value) > 15:
                 raise serializers.ValidationError("Phone number can not be more than 15 digits.")
         # Check if the phone number is not empty
