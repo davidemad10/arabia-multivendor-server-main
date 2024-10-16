@@ -56,13 +56,11 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    # 'allauth.socialaccount.providers.facebook',
+    'allauth.socialaccount.providers.facebook',
     'allauth.socialaccount.providers.google',
 ]
 SITE_ID = 1
-# 647515236660-ch8jschtesm0i0qiaeu36d2a4sj7906r.apps.googleusercontent.com
 
-# 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    #secret for google
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -259,8 +257,8 @@ AUTHENTICATION_BACKENDS = (
 )
 
 # Redirect URL after login/logout
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+# LOGIN_REDIRECT_URL = '/'
+# LOGOUT_REDIRECT_URL = '/'
 
 # Required for social login
 SOCIALACCOUNT_PROVIDERS = {
