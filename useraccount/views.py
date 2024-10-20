@@ -303,6 +303,10 @@ class UserListView(ListAPIView):
     serializer_class=UserSerializer
 
 
-class UserDetailView(RetrieveAPIView):
+class UserDetailView(RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    # def perform_update(self, serializer):
+    #     serializer.save()
+    # def perform_destroy(self, instance):
+    #     instance.delete()
