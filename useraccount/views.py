@@ -22,8 +22,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 # from stats.models import Stats
-
-
 # from .mixins import CheckBuyerAdminGroupMixin, CheckSupplierAdminGroupMixin
 from .models import BuyerProfile, SupplierProfile, User,SupplierDocuments
 from .serializers import (
@@ -43,11 +41,16 @@ import random
 import string
 from django.http import JsonResponse
 from django.db import transaction
-
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework.parsers import MultiPartParser , FormParser
+from drf_yasg import openapi
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework.exceptions import AuthenticationFailed
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     def post(self, request, *args, **kwargs):
+        try:
             response = super().post(request, *args, **kwargs)
             response_data = response.data
             token = response_data.get('access')
@@ -58,7 +61,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             # Return original response data
             response = JsonResponse({'done successfully': 'done successfully', 'tokens':response_data})
             return response
-
+        except AuthenticationFailed:
+            return JsonResponse({'error': 'Invalid email or password'}, status=401)
+        except (InvalidToken, TokenError) as e:
+            # Handle invalid token errors
+            return JsonResponse({'error': str(e)}, status=401)
 
 
 class BuyerRegisterView(CreateAPIView):
@@ -101,7 +108,6 @@ class BuyerRegisterView(CreateAPIView):
         }, status=status.HTTP_201_CREATED)
 
 
-
 class VerifyOTPView(GenericAPIView):
     serializer_class= VerfiyEmailserializer
     def post(self, request):
@@ -122,6 +128,7 @@ class VerifyOTPView(GenericAPIView):
             return Response({'message': 'Email successfully activated.'}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class RequestOTPview(GenericAPIView):
     serializer_class=RequestotpSerializer
@@ -148,6 +155,7 @@ class RequestOTPview(GenericAPIView):
             'email': email
         }, status=status.HTTP_200_OK)
 
+
 class ResetPasswordWithOTPview(GenericAPIView):
     serializer_class = ResetPasswordWithOTPSerializer
     def post(self, request):
@@ -166,6 +174,7 @@ class ResetPasswordWithOTPview(GenericAPIView):
             return  Response({'message': 'OTP verified successfully.'}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ResetPasswordView(GenericAPIView):
     serializer_class=ResetPasswordSerializer
@@ -190,11 +199,6 @@ class ResetPasswordView(GenericAPIView):
         request.session.pop('otp_verified',None)
         return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
 
-
-
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework.parsers import MultiPartParser , FormParser
-from drf_yasg import openapi
 
 class SupplierRegisterView(CreateAPIView):
     queryset = User.objects.all()
@@ -294,23 +298,15 @@ class SupplierRegisterView(CreateAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class SupplierRegisterView(APIView):
-#     def post(self, request, *args, **kwargs):
-#         serializer = SupplierRegistrationSerializer(data=request.data)
-#         print(serializer)
-#         if serializer.is_valid():
-#             print(serializer.errors)
-#             # Save the supplier profile and related documents
-#             serializer.save()
-#             return Response({"message": "Supplier registered successfully."}, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
 class UserListView(ListAPIView):
     queryset = User.objects.all()
     serializer_class=UserSerializer
 
-class UserDetailView(RetrieveAPIView):
+
+class UserDetailView(RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    # def perform_update(self, serializer):
+    #     serializer.save()
+    # def perform_destroy(self, instance):
+    #     instance.delete()

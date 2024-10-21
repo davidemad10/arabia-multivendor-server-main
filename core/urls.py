@@ -32,7 +32,8 @@ urlpatterns = i18n_patterns(
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 #====================================================
     path('rosetta/', include('rosetta.urls')),
-    path("api/account/", include("account.urls", namespace="account")),
+    path('accounts/', include('allauth.urls')), #for  social login
+    path("api/account/", include("useraccount.urls", namespace="account")),
     path("api/products/", include("product.urls", namespace="products")),
     path("api/advertisement/", include("advertisement.urls", namespace="advertisement")),
     path("api/order/", include("order.urls", namespace="order")),

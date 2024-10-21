@@ -7,10 +7,18 @@ from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = "__all__"
+
 class UserSerializer(serializers.ModelSerializer):
     # shipping_address = serializers.PrimaryKeyRelatedField(
     #     queryset=Address.objects.all(), many=False, required=False, allow_null=True
     # )
+    shipping_address=AddressSerializer(required=False)
+    billing_address=AddressSerializer(required=False,read_only=True)
     password1=serializers.CharField(write_only=True,style={'input_type':'password'}, required=False)
     password2=serializers.CharField(write_only=True,style={'input_type':'password'}, required=False)
     created_date = serializers.SerializerMethodField(read_only=True)
@@ -27,12 +35,45 @@ class UserSerializer(serializers.ModelSerializer):
             "password1",
             "password2",
             "phone",
+            "shipping_address",
+            "billing_address",
         )
         extra_kwargs = {
             'full_name': {'required': True, 'min_length': 1, 'max_length': 20},
             'email': {'required': True},
             'phone': {'required': True, 'allow_blank': False},
         }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove address fields if this is a registration request
+        if self.context.get('request') and self.context['request'].method == 'POST':
+            self.fields.pop('shipping_address', None)
+            self.fields.pop('billing_address', None)
+    
+    def update(self, instance, validated_data):
+        shipping_address_data = validated_data.pop('shipping_address', None)
+
+        # Update user fields
+        instance.full_name = validated_data.get('full_name', instance.full_name)
+        instance.email = validated_data.get('email', instance.email)
+        instance.phone = validated_data.get('phone', instance.phone)
+        instance.save()
+
+        # Update or create shipping_address if provided
+        if shipping_address_data:
+            if instance.shipping_address:
+                # Update existing shipping address
+                for key, value in shipping_address_data.items():
+                    setattr(instance.shipping_address, key, value)
+                instance.shipping_address.save()
+            else:
+                # Create new shipping address if it doesn't exist
+                shipping_address = Address.objects.create(**shipping_address_data)
+                instance.shipping_address = shipping_address
+                instance.save()
+
+        return instance
+
     def validate_full_name(self, value):
         if not value.strip():
             raise serializers.ValidationError("Username cannot be empty")
@@ -40,7 +81,8 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Username cannot be more than 20 characters")
         return value
     def validate_email(self,value):
-        if User.objects.filter(email=value).exists():
+        user_id = self.instance.id if self.instance else None
+        if User.objects.filter(email=value).exclude(id=user_id).exists():
             raise serializers.ValidationError("Email already exists")
         return  value
     def validate_phone(self, value):
@@ -53,7 +95,8 @@ class UserSerializer(serializers.ModelSerializer):
         if len(value) > 15:
                 raise serializers.ValidationError("Phone number can not be more than 15 digits.")
         # Check if the phone number is not empty
-        if value and User.objects.filter(phone=value).exists():
+        user_id = self.instance.id if self.instance else None
+        if value and User.objects.filter(phone=value).exclude(id=user_id).exists():
             raise serializers.ValidationError("Phone number already exists")
         return value
     def validate(self, data):
@@ -113,10 +156,6 @@ class UserSerializer(serializers.ModelSerializer):
         ).data
         return representation
 
-class AddressSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Address
-        fields = "__all__"
 
 class SupplierDocumentsSerializer(serializers.ModelSerializer):
     front_id = serializers.FileField(required=True)
