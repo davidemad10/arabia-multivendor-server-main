@@ -50,30 +50,6 @@ class UserSerializer(serializers.ModelSerializer):
             self.fields.pop('shipping_address', None)
             self.fields.pop('billing_address', None)
     
-    def update(self, instance, validated_data):
-        shipping_address_data = validated_data.pop('shipping_address', None)
-
-        # Update user fields
-        instance.full_name = validated_data.get('full_name', instance.full_name)
-        instance.email = validated_data.get('email', instance.email)
-        instance.phone = validated_data.get('phone', instance.phone)
-        instance.save()
-
-        # Update or create shipping_address if provided
-        if shipping_address_data:
-            if instance.shipping_address:
-                # Update existing shipping address
-                for key, value in shipping_address_data.items():
-                    setattr(instance.shipping_address, key, value)
-                instance.shipping_address.save()
-            else:
-                # Create new shipping address if it doesn't exist
-                shipping_address = Address.objects.create(**shipping_address_data)
-                instance.shipping_address = shipping_address
-                instance.save()
-
-        return instance
-
     def validate_full_name(self, value):
         if not value.strip():
             raise serializers.ValidationError("Username cannot be empty")
@@ -129,7 +105,30 @@ class UserSerializer(serializers.ModelSerializer):
     def get_created_time(self, obj):
         return obj.created.time()
 
+    def update(self, instance, validated_data):
+        shipping_address_data = validated_data.pop('shipping_address', None)
 
+        # Update user fields
+        instance.full_name = validated_data.get('full_name', instance.full_name)
+        instance.email = validated_data.get('email', instance.email)
+        instance.phone = validated_data.get('phone', instance.phone)
+        instance.save()
+
+        # Update or create shipping_address if provided
+        if shipping_address_data:
+            if instance.shipping_address:
+                # Update existing shipping address
+                for key, value in shipping_address_data.items():
+                    setattr(instance.shipping_address, key, value)
+                instance.shipping_address.save()
+            else:
+                # Create new shipping address if it doesn't exist
+                shipping_address = Address.objects.create(**shipping_address_data)
+                instance.shipping_address = shipping_address
+                instance.save()
+
+        return instance
+    
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["is_buyer"] = instance.is_buyer
