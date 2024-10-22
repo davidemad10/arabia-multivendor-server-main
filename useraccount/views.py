@@ -247,8 +247,9 @@ class SupplierRegisterView(CreateAPIView):
             "commercial_record": files.get('documents[commercial_record]'),
             "bank_statement": files.get('documents[bank_statement]'),
         }
-
-
+        for key, file in documents_data.items():
+            if not file or file.size == 0:
+                return Response({"documents": f"{key} is missing or empty."}, status=status.HTTP_400_BAD_REQUEST)
         # Check for required fields
         if not user_data['email']:
             print(user_data)
