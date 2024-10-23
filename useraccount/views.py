@@ -89,8 +89,8 @@ class BuyerRegisterView(CreateAPIView):
         )
         user.set_password(password1)
         user.save()
-        if not BuyerProfile.objects.filter(user=user).exists():
-            BuyerProfile.objects.create(user=user)
+
+        BuyerProfile.objects.create(user=user)
         temp_password = ''.join(random.choices(string.digits, k=6))
         user.otp = temp_password 
         user.save() 

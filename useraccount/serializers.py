@@ -149,26 +149,14 @@ class UserSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation["is_buyer"] = instance.is_buyer
         representation["is_supplier"] = instance.is_supplier
-        try:
-            buyer_profile = instance.buyer_profile
-            profile_serializer = BuyerProfileSerializer(instance=buyer_profile)
-            representation["profile"] = profile_serializer.data
-        except BuyerProfile.DoesNotExist:
-            pass
-
-        try:
-            supplier_profile = instance.supplier_profile
-            profile_serializer = SupplierProfileSerializer(instance=supplier_profile)
-            representation["profile"] = profile_serializer.data
-        except SupplierProfile.DoesNotExist:
-            pass
-
-        representation["shipping_address"] = AddressSerializer(
-            instance=instance.shipping_address
-        ).data
-        representation["billing_address"] = AddressSerializer(
-            instance=instance.billing_address
-        ).data
+        if instance.shipping_address:
+            representation["shipping_address"] = AddressSerializer(
+                instance=instance.shipping_address
+            ).data
+        if instance.billing_address:
+            representation["billing_address"] = AddressSerializer(
+                instance=instance.billing_address
+            ).data
         return representation
 
 
