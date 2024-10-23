@@ -4,6 +4,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Address, BuyerProfile, SupplierProfile,SupplierDocuments
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.password_validation import validate_password
+from django.db import IntegrityError
 
 User = get_user_model()
 
@@ -12,6 +13,12 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = "__all__"
+
+class BuyerProfileSerializer(serializers.ModelSerializer):
+    phone= serializers.CharField(source='user.phone',read_only=True,max_length=15)
+    class Meta:
+        model=BuyerProfile
+        fields=['id','phone','bank_account','instapay_account','electronic_wallet','profile_picture','favorite_products']
 
 class UserSerializer(serializers.ModelSerializer):
     # shipping_address = serializers.PrimaryKeyRelatedField(
@@ -23,6 +30,7 @@ class UserSerializer(serializers.ModelSerializer):
     password2=serializers.CharField(write_only=True,style={'input_type':'password'}, required=False)
     created_date = serializers.SerializerMethodField(read_only=True)
     created_time = serializers.SerializerMethodField(read_only=True)
+    buyer_profile = BuyerProfileSerializer(required=False)
 
     class Meta:
         model = User
@@ -37,6 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
             "phone",
             "shipping_address",
             "billing_address",
+            "buyer_profile",
         )
         extra_kwargs = {
             'full_name': {'required': True, 'min_length': 1, 'max_length': 20},
@@ -49,31 +58,9 @@ class UserSerializer(serializers.ModelSerializer):
         if self.context.get('request') and self.context['request'].method == 'POST':
             self.fields.pop('shipping_address', None)
             self.fields.pop('billing_address', None)
+            self.fields.pop("buyer_profile",None)
+
     
-    def update(self, instance, validated_data):
-        shipping_address_data = validated_data.pop('shipping_address', None)
-
-        # Update user fields
-        instance.full_name = validated_data.get('full_name', instance.full_name)
-        instance.email = validated_data.get('email', instance.email)
-        instance.phone = validated_data.get('phone', instance.phone)
-        instance.save()
-
-        # Update or create shipping_address if provided
-        if shipping_address_data:
-            if instance.shipping_address:
-                # Update existing shipping address
-                for key, value in shipping_address_data.items():
-                    setattr(instance.shipping_address, key, value)
-                instance.shipping_address.save()
-            else:
-                # Create new shipping address if it doesn't exist
-                shipping_address = Address.objects.create(**shipping_address_data)
-                instance.shipping_address = shipping_address
-                instance.save()
-
-        return instance
-
     def validate_full_name(self, value):
         if not value.strip():
             raise serializers.ValidationError("Username cannot be empty")
@@ -129,31 +116,47 @@ class UserSerializer(serializers.ModelSerializer):
     def get_created_time(self, obj):
         return obj.created.time()
 
+    def update(self, instance, validated_data):
+        shipping_address_data = validated_data.pop('shipping_address', None)
+        buyer_profile_data = validated_data.pop('buyer_profile', None)
+        # Update user fields
+        instance.full_name = validated_data.get('full_name', instance.full_name)
+        instance.email = validated_data.get('email', instance.email)
+        instance.phone = validated_data.get('phone', instance.phone)
+        instance.save()
 
+        # Update or create shipping_address if provided
+        if shipping_address_data:
+            if instance.shipping_address:
+                # Update existing shipping address
+                for key, value in shipping_address_data.items():
+                    setattr(instance.shipping_address, key, value)
+                instance.shipping_address.save()
+            else:
+                # Create new shipping address if it doesn't exist
+                shipping_address = Address.objects.create(**shipping_address_data)
+                instance.shipping_address = shipping_address
+                instance.save()
+        if buyer_profile_data is not None:
+            buyer_profile, created = BuyerProfile.objects.get_or_create(user=instance)
+            for key, value in buyer_profile_data.items():
+                setattr(buyer_profile, key, value)
+            buyer_profile.save()
+
+        return instance
+    
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["is_buyer"] = instance.is_buyer
         representation["is_supplier"] = instance.is_supplier
-        try:
-            buyer_profile = instance.buyer_profile
-            profile_serializer = BuyerProfileSerializer(instance=buyer_profile)
-            representation["profile"] = profile_serializer.data
-        except BuyerProfile.DoesNotExist:
-            pass
-
-        try:
-            supplier_profile = instance.supplier_profile
-            profile_serializer = SupplierProfileSerializer(instance=supplier_profile)
-            representation["profile"] = profile_serializer.data
-        except SupplierProfile.DoesNotExist:
-            pass
-
-        representation["shipping_address"] = AddressSerializer(
-            instance=instance.shipping_address
-        ).data
-        representation["billing_address"] = AddressSerializer(
-            instance=instance.billing_address
-        ).data
+        if instance.shipping_address:
+            representation["shipping_address"] = AddressSerializer(
+                instance=instance.shipping_address
+            ).data
+        if instance.billing_address:
+            representation["billing_address"] = AddressSerializer(
+                instance=instance.billing_address
+            ).data
         return representation
 
 
@@ -168,11 +171,7 @@ class SupplierDocumentsSerializer(serializers.ModelSerializer):
         fields = ['user','front_id','back_id','tax_card','commercial_record','bank_statement']
 
 
-class BuyerProfileSerializer(serializers.ModelSerializer):
-    phone= serializers.CharField(source='user.phone',max_length=15)
-    class Meta:
-        model=BuyerProfile
-        fields=['id','phone','bank_account','instapay_account','electronic_wallet','profile_picture','user','favorite_products']
+
 
 class SupplierProfileSerializer(serializers.ModelSerializer):
     phone= serializers.CharField(source='user.phone',max_length=15)
