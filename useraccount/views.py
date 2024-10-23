@@ -258,11 +258,16 @@ class SupplierRegisterView(CreateAPIView):
         if not address_data['country']:
             return Response({"address": "This field is required."}, status=status.HTTP_400_BAD_REQUEST)
         
+        # Validate all serializers before saving
         user_serializer = UserSerializer(data=user_data)
         documents_serializer = SupplierDocumentsSerializer(data=documents_data)
         address_serializer = AddressSerializer(data=address_data)
+        # Call is_valid on each serializer
+        is_user_valid = user_serializer.is_valid()
+        is_address_valid = address_serializer.is_valid()
+        is_documents_valid = documents_serializer.is_valid()
 
-        if user_serializer.is_valid() and documents_serializer.is_valid() and address_serializer.is_valid():
+        if is_user_valid and is_address_valid and is_documents_valid:
             try:
                 with transaction.atomic():
                     # Save Address
