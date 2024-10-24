@@ -50,6 +50,43 @@ from rest_framework.exceptions import AuthenticationFailed
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     def post(self, request, *args, **kwargs):
+        if 'email' in request.data:
+            request.data['email'] = request.data['email'].lower()
+        # Check if the email is associated with an active account
+        try:
+            email = request.data.get('email')
+            user = User.objects.get(email=email)
+
+            # If the user is a buyer and the account is not active, send OTP
+            if not user.is_active and not user.is_supplier:
+                # Generate OTP
+                new_otp = ''.join(random.choices(string.digits, k=6))
+                user.otp = new_otp
+                user.save()
+
+                # Send OTP to the user's email
+                send_temporary_password(
+                    new_otp,
+                    "emails/temp_password.html",
+                    _("Arbia Account Activation"),
+                    email,
+                )
+
+                # Inform the user to verify their account
+                return JsonResponse({
+                    'message': 'Your account is not verified. An OTP has been sent to your email to verify your account.',
+                    'email': email
+                }, status=403)
+
+            # If the user is a supplier and the account is not active, inform them of verification pending
+            elif not user.is_active and user.is_supplier:
+                return JsonResponse({
+                    'message': 'Your vendor account is not verified yet. Please wait while we review your documents for verification.'
+                }, status=403)
+
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found.'}, status=404)
+
         try:
             response = super().post(request, *args, **kwargs)
             response_data = response.data
@@ -134,7 +171,8 @@ class RequestOTPview(GenericAPIView):
     def post(self , request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True) 
-        email = serializer.validated_data['email']
+        email = serializer.validated_data['email'].lower()
+        print(email)
         try:
             user=User.objects.get(email=email)
         except User.DoesNotExist:
