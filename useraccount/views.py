@@ -50,6 +50,8 @@ from rest_framework.exceptions import AuthenticationFailed
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     def post(self, request, *args, **kwargs):
+        if 'email' in request.data:
+            request.data['email'] = request.data['email'].lower()
         try:
             response = super().post(request, *args, **kwargs)
             response_data = response.data
@@ -134,7 +136,8 @@ class RequestOTPview(GenericAPIView):
     def post(self , request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True) 
-        email = serializer.validated_data['email']
+        email = serializer.validated_data['email'].lower()
+        print(email)
         try:
             user=User.objects.get(email=email)
         except User.DoesNotExist:
