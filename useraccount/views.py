@@ -172,7 +172,6 @@ class RequestOTPview(GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True) 
         email = serializer.validated_data['email'].lower()
-        print(email)
         try:
             user=User.objects.get(email=email)
         except User.DoesNotExist:
