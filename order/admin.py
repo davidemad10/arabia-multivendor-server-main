@@ -1,6 +1,9 @@
+import json
 from django.contrib import admin
 from .models import Order, OrderItem, ReturnRequest, ReturnRequestFile
-
+from django.db.models import Sum
+from django.urls import path
+from django.shortcuts import render
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -12,8 +15,6 @@ class OrderItemInline(admin.TabularInline):
         return False  # Prevents adding new OrderItems directly in Order
     
 
-
-@admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'created', 'is_paid', 'payment_method', 'get_total')
     list_filter = ('is_paid', 'payment_method', 'created')
@@ -24,6 +25,37 @@ class OrderAdmin(admin.ModelAdmin):
     def get_total(self, obj):
         return obj.get_total()
     get_total.short_description = 'Total Price'
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('sales/', self.admin_site.admin_view(self.sales_view), name='sales_view'),
+        ]
+        return custom_urls + urls
+
+    def sales_view(self, request):
+        # Calculate sales data
+        sales_data = (
+            OrderItem.objects
+            .values('product__translations__name')  # Adjust as per your Product model
+            .annotate(total_sales=Sum('total_price'))
+            .order_by('-total_sales')[:10]
+        )
+        # Convert the QuerySet to a list and handle Decimal types
+        sales_data_list = []
+        for item in sales_data:
+            sales_data_list.append({
+            'product__translations__name': item['product__translations__name'],
+            'total_sales': float(item['total_sales'])  # Convert Decimal to float
+        })
+
+        sales_data_json = json.dumps(sales_data_list)
+        return render(request, "admin/sales_view.html", {"sales_data": sales_data_json})
+    
+
+@admin.register(Order)
+class SalesAdmin(OrderAdmin):
+    change_list_template = "admin/sales_change_list.html"
 
 
 @admin.register(OrderItem)
