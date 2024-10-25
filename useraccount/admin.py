@@ -108,6 +108,7 @@ class SupplierDocumentsAdmin(admin.ModelAdmin):
 
 
 
+
 class UserAdmin(admin.ModelAdmin):
     list_display = ('email', 'full_name', 'is_supplier','is_buyer','is_active', 'is_staff')
     list_filter = ('is_supplier','is_buyer','is_active')

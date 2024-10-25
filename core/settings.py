@@ -354,7 +354,7 @@ JAZZMIN_SETTINGS = {
         {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
 
         # external url that opens in a new window (Permissions can be added)
-        {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        # {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
 
         # model admin to link to (Permissions checked against model)
         {"model": "auth.User"},
@@ -369,7 +369,7 @@ JAZZMIN_SETTINGS = {
 
     # Additional links to include in the user menu on the top right ("app" url type is not allowed)
     "usermenu_links": [
-        {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        # {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
         {"model": "auth.user"}
     ],
 
@@ -408,6 +408,26 @@ JAZZMIN_SETTINGS = {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
         "auth.Group": "fas fa-users",
+        #order model icons
+        "order.Order": "fas fa-receipt",
+        "order.OrderItem": "fas fa-box",
+        "order.ReturnRequest": "fas fa-undo",
+        "order.ReturnRequestFile": "fas fa-file-alt",
+        #product model icons
+        "product.Brand":"fas fa-tags",
+        "product.Category":"fas fa-th-large",
+        "product.Color":"fas fa-palette",
+        "product.ProductImage":"fas fa-image",
+        "product.Product":"fas fa-box-open",
+        "product.Review":"fas fa-star",
+        "product.Size":"fas fa-ruler-combined",
+        #user model icons
+        "useraccount.Address": "fas fa-map-marker-alt",
+        "useraccount.BuyerProfile": "fas fa-id-card",
+        "useraccount.Favorite": "fas fa-heart", 
+        "useraccount.SupplierDocuments": "fas fa-file-upload",
+        "useraccount.SupplierProfile": "fas fa-id-card",  
+        "useraccount.User": "fas fa-user",
     },
     # Icons that are used when one is not manually specified
     "default_icon_parents": "fas fa-chevron-circle-right",
