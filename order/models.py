@@ -13,6 +13,23 @@ from product.models import Product,Color,Size
 
 User = get_user_model()
 
+class Cart(models.Model):
+    id=models.UUIDField(default=uuid.uuid4, primary_key=True)
+    created=models.DateTimeField(auto_now_add=True)
+
+    def  __str__(self):
+        return str(self.id)
+    def get_total_price(self):
+        return sum(item.quantity * item.product.price_after_discount for item in self.items.all())
+
+class CartItem(models.Model):
+    cart=models.ForeignKey(Cart,on_delete=models.CASCADE,related_name="items",null=True, blank=True)
+    product=models.ForeignKey(Product,on_delete=models.CASCADE,related_name="cartitems",null=True, blank=True)
+    quantity=models.PositiveSmallIntegerField(default=1)
+    def get_item_total(self):
+        return self.quantity * self.product.price_after_discount
+
+
 class Order(models.Model):
     class PAYMENT_CHOICES(models.TextChoices):
         CASH = "CASH", _("Cash")
@@ -27,18 +44,21 @@ class Order(models.Model):
     payment_method = models.CharField(
         _("Payment Method"), max_length=10, choices=PAYMENT_CHOICES.choices
     )
+    total_price = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)
 
     def __str__(self):
         return f"Order by {self.user.full_name}"
 
-    def get_total(self):
-        return sum(item.get_final_price() for item in self.order_items.all())
+    def get_total_order_price(self):
+        self.total_price = sum(item.get_final_price() for item in self.order_items.all())
+        self.save()
 
     def save(self, *args, **kwargs):
         # Update total price upon saving the Order instance
         if self.is_paid and not self.paid_date:
             self.paid_date = timezone.now()
         super().save(*args, **kwargs)
+
 
 class OrderItem(models.Model):
     class SHIPPING_STATUS_CHOICES(models.TextChoices):
@@ -78,8 +98,13 @@ class OrderItem(models.Model):
         super().save(*args, **kwargs)
         # Trigger Order total update whenever an OrderItem is saved
         self.order.save()
+# Signal to update Order total whenever an OrderItem is saved
+@receiver(post_save, sender=OrderItem)
+def update_order_total(sender, instance, **kwargs):
+    instance.order.get_total_order_price()
 
 
+from django.core.exceptions import ValidationError
 class ReturnRequest(models.Model):
     class RETURN_STATUS_CHOICES(models.TextChoices):
         NOT_REQUESTED = "NOT", _("Not Requested")
@@ -108,6 +133,17 @@ class ReturnRequest(models.Model):
 
     def __str__(self):
         return f"Return Request #{self.id}"
+    def clean(self):
+        if self.order_item.shipping_status not in [
+            OrderItem.SHIPPING_STATUS_CHOICES.ORDERED,
+            OrderItem.SHIPPING_STATUS_CHOICES.DELIVERED
+        ]:
+            raise ValidationError("Return requests can only be made for items that are Ordered or Delivered.")
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
 
 class ReturnRequestFile(models.Model):
     return_request = models.ForeignKey(ReturnRequest, on_delete=models.CASCADE, related_name="files")
@@ -119,7 +155,3 @@ class ReturnRequestFile(models.Model):
     def __str__(self):
         return f"File for Return Request {self.return_request.id}"
 
-# Signal to update Order total whenever an OrderItem is saved
-@receiver(post_save, sender=OrderItem)
-def update_order_total(sender, instance, **kwargs):
-    instance.order.save()
