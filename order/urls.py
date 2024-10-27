@@ -6,8 +6,13 @@ from . import views
 app_name = "order"
 
 urlpatterns = [
-    # path("checkout/", views.CheckoutView.as_view()),
-    # path("orders/", views.OrderItemListView.as_view()),
+    path("checkout/", views.CheckoutView.as_view()),
+    path("orderitems/", views.OrderItemListView.as_view()),
+    path("orders/", views.OrderListView.as_view()),
+    path("orderdetail/", views.OrderDetailView.as_view()),
+    path("addcart/", views.AddCartItemView.as_view()),
+    path("updatecart/", views.UpdateCartItemView.as_view()),
+    path("deletecartItem/", views.DeleteCartItemView.as_view()),
     # path("advance/", views.OrderItemShippingAdvanceView.as_view()),
     # path("return/list/", views.OrderReturnListView.as_view()),
     # path("return/<id>/", views.OrderReturnView.as_view()),
