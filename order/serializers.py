@@ -5,11 +5,11 @@ from product.serializers import ProductSerializer
 
 class CartItemSerializer(serializers.ModelSerializer):
     product= ProductSerializer(many=False)
-    sub_total=serializers.SerializerMethodField(method_name="total")
+    sub_total=serializers.SerializerMethodField()
     class Meta:
         model= CartItem
         fields = ['id','cart','product','quantity','sub_total']
-    def total(self,cartitem:CartItem):
+    def get_sub_total(self,cartitem):
         return cartitem.quantity*cartitem.product.price_after_discount
 
 
@@ -19,7 +19,6 @@ class AddCartItemSerializer(serializers.ModelSerializer):
     def validate_product_id(self, value):
         if not Product.objects.filter(pk=value).exists():
             raise serializers.ValidationError("There is no product associated with the given ID")
-        
         return value
     
     def save(self, **kwargs):
@@ -33,12 +32,11 @@ class AddCartItemSerializer(serializers.ModelSerializer):
             cartitem.save()
             
             self.instance = cartitem
-            
-        
-        except:
-            
+        except CartItem.DoesNotExist:
             self.instance = CartItem.objects.create(cart_id=cart_id, **self.validated_data)
-            
+        except Exception as e:
+            raise ValueError(f"An unexpected error occurred: {e}")
+
         return self.instance
 
 
@@ -56,30 +54,32 @@ class UpdateCartItemSerializer(serializers.ModelSerializer):
 class CartSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(read_only=True)
     items = CartItemSerializer(many=True, read_only=True)
-    grand_total = serializers.SerializerMethodField(method_name='main_total')
+    total_price = serializers.SerializerMethodField()
     
     class Meta:
         model = Cart
-        fields = ["id", "items", "grand_total"]
+        fields = ["id", "items", "total_price"]
         
-    def main_total(self, cart: Cart):
-        items = cart.items.all()
-        total = sum([item.quantity * item.product.price for item in items])
-        return total
+    def get_total_price(self, cart):
+        return sum(item.quantity * item.product.price_after_discount for item in cart.items.all())
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product=ProductSerializer()
+    total_price = serializers.SerializerMethodField()
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "quantity"]
+        fields = ["id", "product", "quantity","color","size","total_price"]
+    def get_total_price(self, order_item):
+        return order_item.get_final_price()
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    items=OrderItemSerializer(many=True , read_only=True)
+    order_items=OrderItemSerializer(many=True , read_only=True)
+    total_price = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     class Meta:
         model = Order
-        fields = ["id","is_paid","created","user","payment_method"]
+        fields = ["id","is_paid","created","user","payment_method","total_price","order_items"]
 
 
 
@@ -101,7 +101,7 @@ class CreateOrderSerializer(serializers.Serializer):
         with transaction.atomic():
             cart_id = self.validated_data["cart_id"]
             user_id = self.context["user_id"]
-            order = Order.objects.create(owner_id = user_id)
+            order = Order.objects.create(user_id = user_id)
             cartitems = CartItem.objects.filter(cart_id=cart_id)
             orderitems = [
                 OrderItem(order=order, 
@@ -111,11 +111,13 @@ class CreateOrderSerializer(serializers.Serializer):
             for item in cartitems
             ]
             OrderItem.objects.bulk_create(orderitems)
-            # Cart.objects.filter(id=cart_id).delete()
+            Cart.objects.filter(id=cart_id).delete()
+            order.get_total_order_price()
+            
             return order
 
 
-class UpdateOrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Order 
-        fields = ["pending_status"]
+# class UpdateOrderSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Order 
+#         fields = ["pending_status"]

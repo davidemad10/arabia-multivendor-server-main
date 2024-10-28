@@ -23,7 +23,7 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderItemInline]
 
     def get_total(self, obj):
-        return obj.get_total()
+        return obj.total_price  
     get_total.short_description = 'Total Price'
 
     def get_urls(self):
