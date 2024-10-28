@@ -111,12 +111,14 @@ class BuyerRegisterView(CreateAPIView):
     
     def create(self, request, *args, **kwargs):
         data = request.data
+        email = data.get('email')
+        if User.objects.filter(email=email).exists():
+            return Response({'error': 'A user with this email already exists.'}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=data)
         # Validate the serializer
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        email=data.get('email')
         password1 = data.get('password1')
         
         user = serializer.save(

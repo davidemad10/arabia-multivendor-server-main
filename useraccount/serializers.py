@@ -64,8 +64,8 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_full_name(self, value):
         if not value.strip():
             raise serializers.ValidationError("Username cannot be empty")
-        if len(value)>20:
-            raise serializers.ValidationError("Username cannot be more than 20 characters")
+        if len(value)>50:
+            raise serializers.ValidationError("Username cannot be more than 50 characters")
         return value
     def validate_email(self,value):
         user_id = self.instance.id if self.instance else None
