@@ -20,6 +20,15 @@ class AddCartItemSerializer(serializers.ModelSerializer):
         if not Product.objects.filter(pk=value).exists():
             raise serializers.ValidationError("There is no product associated with the given ID")
         return value
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Quantity must be greater than zero.")
+        product_id = self.initial_data.get("product_id")
+        product = Product.objects.get(pk=product_id)
+        if value > product.stock_quantity:
+            raise serializers.ValidationError(f"Cannot add more than {product.stock_quantity} of this product to the cart.")
+        return value
+
     
     def save(self, **kwargs):
         cart_id = self.context["cart_id"]
@@ -89,35 +98,37 @@ class CreateOrderSerializer(serializers.Serializer):
     def validate_cart_id(self, cart_id):
         if not Cart.objects.filter(pk=cart_id).exists():
             raise serializers.ValidationError("This cart_id is invalid")
-        
         elif not CartItem.objects.filter(cart_id=cart_id).exists():
             raise serializers.ValidationError("Sorry your cart is empty")
         
         return cart_id
     
-    
-    
     def save(self, **kwargs):
         with transaction.atomic():
             cart_id = self.validated_data["cart_id"]
             user_id = self.context["user_id"]
-            order = Order.objects.create(user_id = user_id)
+
+            # Create the order
+            order = Order.objects.create(user_id=user_id)
             cartitems = CartItem.objects.filter(cart_id=cart_id)
-            orderitems = [
-                OrderItem(order=order, 
-                    product=item.product, 
-                    quantity=item.quantity
-                    )
-            for item in cartitems
-            ]
+            orderitems = []
+            total_order_price = 0  
+            for item in cartitems:
+                item_total_price = item.quantity * item.product.price_after_discount
+                order_item = OrderItem(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity,
+                    total_price=item_total_price,
+                )
+                orderitems.append(order_item)
+                total_order_price += item_total_price  
+            # Bulk create all order items
             OrderItem.objects.bulk_create(orderitems)
+            order.total_price = total_order_price  
+            order.save()
+
+            # Delete the cart after creating the order
             Cart.objects.filter(id=cart_id).delete()
-            order.get_total_order_price()
-            
+
             return order
-
-
-# class UpdateOrderSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Order 
-#         fields = ["pending_status"]

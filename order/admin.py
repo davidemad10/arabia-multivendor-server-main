@@ -1,6 +1,6 @@
 import json
 from django.contrib import admin
-from .models import Order, OrderItem, ReturnRequest, ReturnRequestFile
+from .models import Order, OrderItem, ReturnRequest, ReturnRequestFile,Cart,CartItem
 from django.db.models import Sum
 from django.urls import path
 from django.shortcuts import render
@@ -84,3 +84,12 @@ class ReturnRequestAdmin(admin.ModelAdmin):
 class ReturnRequestFileAdmin(admin.ModelAdmin):
     list_display = ('id', 'return_request', 'evidence_file')
     search_fields = ('return_request__id',)
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    list_display=('id','user','created')
+
+@admin.register(CartItem)
+class CartItemAdmin(admin.ModelAdmin):
+    list_display=('id','cart','product','quantity')
+

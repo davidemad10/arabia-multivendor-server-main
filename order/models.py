@@ -10,11 +10,13 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from product.models import Product,Color,Size
+from useraccount.models import User
 
 User = get_user_model()
 
 class Cart(models.Model):
     id=models.UUIDField(default=uuid.uuid4, primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts", null=True, blank=True)
     created=models.DateTimeField(auto_now_add=True)
 
     def  __str__(self):
@@ -23,6 +25,7 @@ class Cart(models.Model):
         return sum(item.quantity * item.product.price_after_discount for item in self.items.all())
 
 class CartItem(models.Model):
+    id=models.UUIDField(default=uuid.uuid4, primary_key=True)
     cart=models.ForeignKey(Cart,on_delete=models.CASCADE,related_name="items",null=True, blank=True)
     product=models.ForeignKey(Product,on_delete=models.CASCADE,related_name="cartitems",null=True, blank=True)
     quantity=models.PositiveSmallIntegerField(default=1)

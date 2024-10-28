@@ -4,6 +4,7 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError ,NotFound
 from .models import Order, OrderItem, Cart , CartItem
 from .serializers import(
     CreateOrderSerializer,
@@ -38,20 +39,22 @@ class OrderItemListView(generics.ListAPIView):
 
     def get_queryset(self):
         return OrderItem.objects.filter(order__user=self.request.user)
-
 # View for listing all orders of a user
 class OrderListView(generics.ListAPIView):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        orders=Order.objects.filter(user=self.request.user)
+        # if not orders:
+        #     raise NotFound("You do not have any orders yet.")
+        return orders
 
 # View for retrieving a specific order
 class OrderDetailView(generics.RetrieveAPIView):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
-
+    queryset = Order.objects.all()
     def get_object(self):
         return get_object_or_404(Order, id=self.kwargs["pk"], user=self.request.user)
 
@@ -61,7 +64,12 @@ class AddCartItemView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        if not request.user.is_authenticated:
+            raise ValidationError("User must be logged in to add items to the cart.")
+
+        # Check if a cart exists for the user, create one if it doesn't
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        serializer = self.get_serializer(data=request.data, context={"cart_id": cart.id})
         serializer.is_valid(raise_exception=True)
         cart_item = serializer.save()
         return Response({
@@ -86,6 +94,9 @@ class DeleteCartItemView(generics.DestroyAPIView):
 
     def get_object(self):
         return get_object_or_404(CartItem, id=self.kwargs["pk"], cart__items__cart__user=self.request.user)
+    def destroy(self, request, *args, **kwargs):
+        self.perform_destroy(self.get_object())
+        return Response({"message": "Deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 # View for retrieving the current user's cart
 class CartDetailView(generics.RetrieveAPIView):
@@ -94,4 +105,3 @@ class CartDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return get_object_or_404(Cart, items__cart__user=self.request.user)
-

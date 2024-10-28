@@ -132,7 +132,7 @@ class BuyerRegisterView(CreateAPIView):
         temp_password = ''.join(random.choices(string.digits, k=6))
         user.otp = temp_password 
         user.save() 
-
+        email = user.email
         send_temporary_password(
             temp_password,
             "emails/temp_password.html",
