@@ -1,3 +1,4 @@
+import uuid
 from common.utils.create_slug import create_slug
 from common.utils.file_upload_paths import (
     brands_images_path,
@@ -109,6 +110,7 @@ class Color(TranslatableModel):
 
 
 class Product(TranslatableModel):
+    id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     translations=TranslatedFields(
     name=models.CharField(_("Product Name"), max_length=255),
     description=models.TextField(_("Description"))
@@ -117,7 +119,7 @@ class Product(TranslatableModel):
     color=models.ManyToManyField(Color,related_name="products",blank=True)
     size=models.ManyToManyField(Size,related_name="products",blank=True)
 
-    sku = models.CharField(primary_key=True, max_length=255, unique=True, blank=True)
+    sku = models.CharField( max_length=255, unique=True, blank=True)
     supplier = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Supplier"))
     slug = models.SlugField(unique=True, null=True, blank=True)
     price_before_discount = models.DecimalField(
