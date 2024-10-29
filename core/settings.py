@@ -414,6 +414,8 @@ JAZZMIN_SETTINGS = {
         "order.OrderItem": "fas fa-box",
         "order.ReturnRequest": "fas fa-undo",
         "order.ReturnRequestFile": "fas fa-file-alt",
+        "order.Cart":"fas fa-shopping-cart",
+        "order.CartItem":"fas fa-cart-plus",
         #product model icons
         "product.Brand":"fas fa-tags",
         "product.Category":"fas fa-th-large",

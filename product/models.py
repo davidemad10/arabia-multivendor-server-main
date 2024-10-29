@@ -169,6 +169,7 @@ class Product(TranslatableModel):
     
 
     class Meta:
+        ordering=['id']
         indexes = [
             models.Index(fields=['slug']),  # فهرس على حقل slug
             models.Index(fields=['price_before_discount']),  # فهرس على حقل price_before_discount
