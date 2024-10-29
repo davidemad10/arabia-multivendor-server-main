@@ -122,7 +122,13 @@ class CreateOrderSerializer(serializers.Serializer):
                     total_price=item_total_price,
                 )
                 orderitems.append(order_item)
-                total_order_price += item_total_price  
+                total_order_price += item_total_price
+                product = item.product
+                if item.quantity > product.stock_quantity:
+                    raise ValidationError(f"Insufficient stock for {product.name}.")
+                product.stock_quantity -= item.quantity
+                product.total_sold += item.quantity
+                product.save()
             # Bulk create all order items
             OrderItem.objects.bulk_create(orderitems)
             order.total_price = total_order_price  

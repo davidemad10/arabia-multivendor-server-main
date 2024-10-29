@@ -1,6 +1,6 @@
 # from advertisement.models import Advertisement
 # from advertisement.serializers import AdvertisementSerializer
-from common.utils.create_slug import create_slug
+# from common.utils.create_slug import create_slug
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.db.models import Case, ExpressionWrapper, F, FloatField, Sum, When
@@ -110,6 +110,24 @@ class ProductViewSet( viewsets.ModelViewSet):
         
         except Product.DoesNotExist:
             raise Http404('Product not found.')
+    @action(detail=False, methods=["get"], url_path="bycategory")
+    def get_products_by_category(self, request):
+        category_slug = request.query_params.get("category")
+        print("category_slug",category_slug)
+        if category_slug:
+            try:
+                category = Category.objects.get(slug=category_slug)
+                # Get all descendant categories of the specified category
+                descendant_categories = category.get_descendants(include_self=True)
+                # Filter products within these categories
+                products = Product.objects.filter(category__in=descendant_categories).order_by('id')
+                print("Filtered products:", products)
+                serializer = ProductSerializer(products, many=True)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except Category.DoesNotExist:
+                return Response({"error": "Category not found."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({"error": "Category slug is required."}, status=status.HTTP_400_BAD_REQUEST)
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
