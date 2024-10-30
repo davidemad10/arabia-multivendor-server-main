@@ -54,7 +54,12 @@ def ads_images_path(instance, filename):
         filename,
     )
 
-
+def payment_screenshoot_path(instance,filename):
+    return os.path.join(
+        "payment",
+        "images",
+        filename
+    )
 def product_images_path(instance, filename):
     return os.path.join(
         "product",

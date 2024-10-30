@@ -37,6 +37,7 @@ urlpatterns = i18n_patterns(
     path("api/products/", include("product.urls", namespace="products")),
     path("api/advertisement/", include("advertisement.urls", namespace="advertisement")),
     path("api/order/", include("order.urls", namespace="order")),
+    path("api/payment/", include("payment.urls", namespace="payment")),
     # path("api/contact/", include("contact.urls", namespace="contact")),
     # path("api/quote/", include("quote.urls", namespace="quote")),
     # path("api/wishlist/", include("wishlist.urls", namespace="wishlist")),
