@@ -20,6 +20,27 @@ class BuyerProfileSerializer(serializers.ModelSerializer):
         model=BuyerProfile
         fields=['id','phone','bank_account','instapay_account','electronic_wallet','profile_picture','favorite_products']
 
+
+class SupplierDocumentsSerializer(serializers.ModelSerializer):
+    front_id = serializers.FileField(required=True)
+    back_id = serializers.FileField(required=True)
+    tax_card = serializers.FileField(required=True)
+    commercial_record = serializers.FileField(required=True)
+    bank_statement = serializers.FileField(required=True)
+    class Meta:
+        model = SupplierDocuments
+        fields = ['user','front_id','back_id','tax_card','commercial_record','bank_statement']
+
+
+class SupplierProfileSerializer(serializers.ModelSerializer):
+    phone= serializers.CharField(source='user.phone',max_length=15)
+    entity_address=AddressSerializer()
+    documents=SupplierDocumentsSerializer()
+    class Meta:
+        model=SupplierProfile
+        fields=['id','phone','user','entity_address','bank_account','instapay_account','electronic_wallet','documents','profile_picture']
+
+
 class UserSerializer(serializers.ModelSerializer):
     # shipping_address = serializers.PrimaryKeyRelatedField(
     #     queryset=Address.objects.all(), many=False, required=False, allow_null=True
@@ -31,6 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
     created_date = serializers.SerializerMethodField(read_only=True)
     created_time = serializers.SerializerMethodField(read_only=True)
     buyer_profile = BuyerProfileSerializer(required=False)
+    supplier_profile=SupplierProfileSerializer(required=False)
 
     class Meta:
         model = User
@@ -46,6 +68,7 @@ class UserSerializer(serializers.ModelSerializer):
             "shipping_address",
             "billing_address",
             "buyer_profile",
+            "supplier_profile",
         )
         extra_kwargs = {
             'full_name': {'required': True, 'min_length': 1, 'max_length': 20},
@@ -59,6 +82,7 @@ class UserSerializer(serializers.ModelSerializer):
             self.fields.pop('shipping_address', None)
             self.fields.pop('billing_address', None)
             self.fields.pop("buyer_profile",None)
+            self.fields.pop("supplier_profile",None)
 
     
     def validate_full_name(self, value):
@@ -160,29 +184,6 @@ class UserSerializer(serializers.ModelSerializer):
         return representation
 
 
-class SupplierDocumentsSerializer(serializers.ModelSerializer):
-    front_id = serializers.FileField(required=True)
-    back_id = serializers.FileField(required=True)
-    tax_card = serializers.FileField(required=True)
-    commercial_record = serializers.FileField(required=True)
-    bank_statement = serializers.FileField(required=True)
-    class Meta:
-        model = SupplierDocuments
-        fields = ['user','front_id','back_id','tax_card','commercial_record','bank_statement']
-
-
-
-
-class SupplierProfileSerializer(serializers.ModelSerializer):
-    phone= serializers.CharField(source='user.phone',max_length=15)
-    entity_address=AddressSerializer()
-    documents=SupplierDocumentsSerializer()
-    class Meta:
-        model=SupplierProfile
-        fields=['id','phone','user','entity_address','bank_account','instapay_account','electronic_wallet','documents','profile_picture']
-
-
-
 class SupplierRegistrationSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     documents = SupplierDocumentsSerializer()
@@ -195,25 +196,26 @@ class SupplierRegistrationSerializer(serializers.ModelSerializer):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        token = super().get_token(user)
+        token = super().get_token(user) 
+
         token["full_name"] = user.full_name
-        # token["group_names"] = list(user.groups.values_list("name", flat=True))
+        token["shipping_address"] = user.shipping_address if user.shipping_address else None
+        token["phone"] = user.phone
+        token["parent"] = str(user.parent.id) if user.parent else None
+        token["role"] = "supplier" if user.is_supplier else "buyer"
 
-        if user.parent is not None:
-            token["parent"] = str(user.parent.id)
-            token["role"] = "supplier" if user.is_supplier else "buyer"
+        # Check for buyer or supplier profile and add relevant information
+        if user.buyer_profile:
+            token["profile_picture"] = user.buyer_profile.profile_picture.url if user.buyer_profile.profile_picture else None
+            token["bank_account"] = user.buyer_profile.bank_account
+            token["instapay_account"] = user.buyer_profile.instapay_account
+            token["electronic_wallet"] = user.buyer_profile.electronic_wallet
+        elif user.supplier_profile:
+            token["profile_picture"] = user.supplier_profile.profile_picture.url if user.supplier_profile.profile_picture else None
+            token["bank_account"] = user.supplier_profile.bank_account
+            token["instapay_account"] = user.supplier_profile.instapay_account
+            token["electronic_wallet"] = user.supplier_profile.electronic_wallet
         else:
-            token["parent"] = None
-            token["role"] = (
-                "admin" if user.is_staff else "supplier" if user.is_supplier else "buyer"
-            )
-
-        try:
-            if user.is_supplier:
-                token["profile_picture"] = user.supplier_profile.profile_picture.url
-            else:
-                token["profile_picture"] = user.buyer_profile.profile_picture.url
-        except ValueError:
             token["profile_picture"] = None
 
         return token

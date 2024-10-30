@@ -392,7 +392,7 @@ JAZZMIN_SETTINGS = {
     "hide_models": [],
 
     # List of apps (and/or models) to base side menu ordering off of (does not need to contain all apps/models)
-    "order_with_respect_to": ["useraccount", "product", "order"],
+    "order_with_respect_to": ["useraccount", "product", "order","payment"],
 
     # Custom links to append to app groups, keyed on app name
     "custom_links": {
@@ -410,6 +410,8 @@ JAZZMIN_SETTINGS = {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
         "auth.Group": "fas fa-users",
+        #payment icons
+        "payment.Payment": "fas fa-credit-card", 
         #order model icons
         "order.Order": "fas fa-receipt",
         "order.OrderItem": "fas fa-box",
