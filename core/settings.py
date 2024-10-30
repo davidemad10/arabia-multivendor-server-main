@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'company',
     'stats',
     'wallet',
+    'payment',
     # 3rd Party Apps
     # "django_extensions",
     "django_filters",
