@@ -13,6 +13,13 @@ from product.models import Product,Color,Size
 from useraccount.models import User
 
 User = get_user_model()
+PAYMENT_METHODS = [
+    ('COD', 'Cash on Delivery'),
+    ('INSTAPAY', 'Instapay'),
+    ('VODAFONE_CASH', 'Vodafone Cash')
+]
+
+
 
 class Cart(models.Model):
     id=models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -35,7 +42,9 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     class PAYMENT_CHOICES(models.TextChoices):
-        CASH = "CASH", _("Cash")
+        COD = "COD", _("Cash on Delivery")
+        INSTAPAY = "INSTAPAY", _("Instapay")
+        VODAFONE_CASH = "VODAFONE_CASH", _("Vodafone Cash")
 
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
     user = models.ForeignKey(
@@ -45,7 +54,7 @@ class Order(models.Model):
     is_paid = models.BooleanField(_("Is Paid"), default=False)
     paid_date = models.DateTimeField(_("Paid Date"), null=True, blank=True)
     payment_method = models.CharField(
-        _("Payment Method"), max_length=10, choices=PAYMENT_CHOICES.choices
+        _("Payment Method"), max_length=20, choices=PAYMENT_CHOICES.choices
     )
     total_price = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)
 

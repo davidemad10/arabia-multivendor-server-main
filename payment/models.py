@@ -14,7 +14,7 @@ class Payment(models.Model):
     ]
     method=models.CharField(max_length=20, choices=PAYMENT_METHODS)
     amount=models.DecimalField(max_digits=10, decimal_places=2)
-    is_paid=models.BooleanField(default=False)
+    is_paid = models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
     screenshot=models.ImageField(upload_to=payment_screenshoot_path,blank=True , null=True,validators=[image_extension_validator])
 
@@ -22,4 +22,5 @@ class Payment(models.Model):
         ordering=['created_at']
 
     def __str__(self):
-        return f"{self.get_method_display()} - {'Paid' if self.is_paid else 'Pending'}"
+        return f"payment for order {self.order.id}"
+

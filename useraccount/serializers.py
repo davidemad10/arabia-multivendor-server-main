@@ -201,6 +201,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["full_name"] = user.full_name
         token["shipping_address"] = user.shipping_address if user.shipping_address else None
         token["phone"] = user.phone
+        token["email"] = user.email
         token["parent"] = str(user.parent.id) if user.parent else None
         token["role"] = "supplier" if user.is_supplier else "buyer"
 
