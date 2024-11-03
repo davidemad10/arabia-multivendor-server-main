@@ -2,8 +2,13 @@ import json
 from django.contrib import admin
 from .models import Order, OrderItem, ReturnRequest, ReturnRequestFile,Cart,CartItem
 from django.db.models import Sum
-from django.urls import path
+from django.urls import path,reverse
+from django.utils.safestring import mark_safe
 from django.shortcuts import render
+
+
+
+
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -16,11 +21,16 @@ class OrderItemInline(admin.TabularInline):
     
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'created', 'is_paid', 'payment_method', 'get_total')
+    list_display = ('id', 'user', 'created', 'is_paid', 'payment_method', 'get_total','order_pdf')
     list_filter = ('is_paid', 'payment_method', 'created')
     search_fields = ('user__username', 'user__email')
     readonly_fields = ('get_total', 'created', 'paid_date')
     inlines = [OrderItemInline]
+
+    def order_pdf(self,obj):
+        url=reverse('order:admin_order_pdf', args=[obj.id])
+        return mark_safe(f'<a href="{url}" target="_blank">View Invoice</a>')
+    order_pdf.short_description='Invoice'
 
     def get_total(self, obj):
         return obj.total_price  

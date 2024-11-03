@@ -1,5 +1,12 @@
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
+from django.http import  HttpResponse
+from django.template.loader import render_to_string
+from django.contrib.admin.views.decorators import staff_member_required
+from xhtml2pdf import pisa
+from .tasks import payment_completed
+import io
+import os
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -25,6 +32,7 @@ class CheckoutView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data, context={'user_id': request.user.id})
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
+        payment_completed(order.id)
         return Response({
             'message': 'Order created successfully',
             'order_id': order.id,
@@ -105,3 +113,19 @@ class CartDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return get_object_or_404(Cart, items__cart__user=self.request.user)
+
+#invoice creation pdf
+@staff_member_required
+def admin_order_pdf(request,order_id):
+    order=get_object_or_404(Order,id=order_id)
+    html=render_to_string('orders/invoice.html',{'order':order})
+    response=HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="order_{order_id}.pdf"' 
+    result = io.BytesIO()
+    pdf = pisa.CreatePDF(io.BytesIO(html.encode("UTF-8")), dest=result)
+
+    if pdf.err:
+        return HttpResponse("Error rendering PDF", status=500)
+    # Write PDF data to the HTTP response
+    response.write(result.getvalue())
+    return response
