@@ -1,11 +1,18 @@
-from django.urls import path
+from django.urls import path,include
 from rest_framework_simplejwt.views import TokenRefreshView
 from dj_rest_auth.views import  LogoutView
 from . import views
+from rest_framework.routers import DefaultRouter
+from .views import FavoriteViewSet
 
 app_name = "account"
 
+router = DefaultRouter()
+router.register(r'favorites', FavoriteViewSet, basename='favorite')
+urlpatterns = router.urls
+
 urlpatterns = [
+    path('', include(router.urls)),
     path("login/", views.CustomTokenObtainPairView.as_view(), name="login"),
     path("token/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("buyer/register/", views.BuyerRegisterView.as_view(), name="buyer-register"),
@@ -17,7 +24,7 @@ urlpatterns = [
     path('passwordresetconfirm/',views.ResetPasswordView.as_view(),name='resetpassword'),
     path('users/',views.UserListView.as_view(), name='users-list'),
     path('users/<uuid:pk>/',views.UserDetailView.as_view(), name='users-detail'),
-    path('favorites/add/', views.FavoriteViewSet.as_view({'post': 'create'}), name='add-favorite'),
+    # path('favorites/add/', views.FavoriteViewSet.as_view({'post': 'create'}), name='add-favorite'),
     # path("supplier/list/", views.SupplierListView.as_view(), name="supplier-list"),
     # path(
     #     "buyer/email-verify-refresh/",

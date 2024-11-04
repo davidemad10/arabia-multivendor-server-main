@@ -3,7 +3,7 @@ import jwt
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
-from rest_framework import status , viewsets
+from rest_framework import status , viewsets,mixins
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -21,10 +21,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.decorators import action
 # from stats.models import Stats
 # from .mixins import CheckBuyerAdminGroupMixin, CheckSupplierAdminGroupMixin
 from .models import BuyerProfile, SupplierProfile, User,SupplierDocuments,Favorite
 from product.models import Product
+from product.serializers import ProductSerializer
 from .serializers import (
     AddressSerializer,
     CustomTokenObtainPairSerializer,
@@ -356,19 +358,23 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
     # def perform_destroy(self, instance):
     #     instance.delete()
 
-class FavoriteViewSet(viewsets.ModelViewSet):
+
+class FavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = FavoriteSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user_profile = self.request.user.buyer_profile
-        return Favorite.objects.filter(user_profile=user_profile)
+        return Favorite.objects.filter(user_profile=user_profile).select_related('product').only('product__name', 'product__price')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        response_data = {
+            'message': 'Product added to favorites successfully',
+        }
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
         user_profile = request.user.buyer_profile
@@ -379,3 +385,13 @@ class FavoriteViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Favorite.DoesNotExist:
             return Response({'detail': 'Favorite not found.'}, status=status.HTTP_404_NOT_FOUND)
+    @action(detail=False, methods=['get'], url_path='products')
+    def favorite_products(self, request):
+        user_profile = request.user.buyer_profile
+        favorite_product_ids = user_profile.favorite_products.values_list('id', flat=True)
+
+        # Retrieve products based on the favorite product IDs
+        products = Product.objects.filter(id__in=favorite_product_ids)
+        serializer = ProductSerializer(products, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
