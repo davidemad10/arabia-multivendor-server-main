@@ -1,10 +1,13 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import Address, BuyerProfile, SupplierProfile,SupplierDocuments
+from .models import Address, BuyerProfile, SupplierProfile,SupplierDocuments,Favorite
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.password_validation import validate_password
 from django.db import IntegrityError
+from product.models import Product
+from product.serializers import  ProductSerializer
+
 
 User = get_user_model()
 
@@ -77,13 +80,21 @@ class UserSerializer(serializers.ModelSerializer):
         }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Remove address fields if this is a registration request
-        if self.context.get('request') and self.context['request'].method == 'POST':
-            self.fields.pop('shipping_address', None)
-            self.fields.pop('billing_address', None)
-            self.fields.pop("buyer_profile",None)
-            self.fields.pop("supplier_profile",None)
-
+        request = self.context.get('request')
+        if request:
+            if request.method == 'POST':
+                # Remove address and profile fields for registration requests
+                self.fields.pop('shipping_address', None)
+                self.fields.pop('billing_address', None)
+                self.fields.pop("buyer_profile", None)
+                self.fields.pop("supplier_profile", None)
+            elif request.method in ['PUT', 'PATCH']:
+                self.fields['buyer_profile'].required = False
+                self.fields['supplier_profile'].required = False
+                if not self.instance.is_supplier:
+                    self.fields.pop("supplier_profile", None)
+                if  not self.instance.is_buyer:
+                    self.fields.pop("buyer_profile", None)
     
     def validate_full_name(self, value):
         if not value.strip():
@@ -199,12 +210,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user) 
 
         token["full_name"] = user.full_name
-        token["shipping_address"] = user.shipping_address if user.shipping_address else None
         token["phone"] = user.phone
         token["email"] = user.email
         token["parent"] = str(user.parent.id) if user.parent else None
         token["role"] = "supplier" if user.is_supplier else "buyer"
 
+        if user.shipping_address:
+            token["shipping_address"] = AddressSerializer(user.shipping_address).data
+        else:
+            token["shipping_address"] = None
+        
         # Check for buyer or supplier profile and add relevant information
         if user.buyer_profile:
             token["profile_picture"] = user.buyer_profile.profile_picture.url if user.buyer_profile.profile_picture else None
@@ -240,3 +255,25 @@ class  ResetPasswordSerializer(serializers.Serializer):
         if new_password  != confirm_password:
             raise serializers.ValidationError('The  two password fields must match.')
         return data
+    
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(), source='product', write_only=True
+    )
+    
+    class Meta:
+        model = Favorite
+        fields = ['product_id', 'product','created_at']
+        read_only_fields = ['created_at']
+
+    def create(self, validated_data):
+        user_profile = self.context['request'].user.buyer_profile
+        product = validated_data['product']
+        favorite, created = Favorite.objects.get_or_create(
+            user_profile=user_profile, product=product
+        )
+        if not created:
+            raise serializers.ValidationError("This product is already in favorites.")
+        return favorite

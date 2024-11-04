@@ -17,6 +17,7 @@ urlpatterns = [
     path('passwordresetconfirm/',views.ResetPasswordView.as_view(),name='resetpassword'),
     path('users/',views.UserListView.as_view(), name='users-list'),
     path('users/<uuid:pk>/',views.UserDetailView.as_view(), name='users-detail'),
+    path('favorites/add/', views.FavoriteViewSet.as_view({'post': 'create'}), name='add-favorite'),
     # path("supplier/list/", views.SupplierListView.as_view(), name="supplier-list"),
     # path(
     #     "buyer/email-verify-refresh/",
