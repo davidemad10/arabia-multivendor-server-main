@@ -3,7 +3,7 @@ import jwt
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
-from rest_framework import status
+from rest_framework import status , viewsets
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -23,7 +23,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 # from stats.models import Stats
 # from .mixins import CheckBuyerAdminGroupMixin, CheckSupplierAdminGroupMixin
-from .models import BuyerProfile, SupplierProfile, User,SupplierDocuments
+from .models import BuyerProfile, SupplierProfile, User,SupplierDocuments,Favorite
+from product.models import Product
 from .serializers import (
     AddressSerializer,
     CustomTokenObtainPairSerializer,
@@ -35,6 +36,7 @@ from .serializers import (
     RequestotpSerializer,
     VerfiyEmailserializer,
     ResetPasswordSerializer,
+    FavoriteSerializer,
 )
 from .utils import send_temporary_password
 import random
@@ -353,3 +355,27 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
     #     serializer.save()
     # def perform_destroy(self, instance):
     #     instance.delete()
+
+class FavoriteViewSet(viewsets.ModelViewSet):
+    serializer_class = FavoriteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user_profile = self.request.user.buyer_profile
+        return Favorite.objects.filter(user_profile=user_profile)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        user_profile = request.user.buyer_profile
+        product_id = kwargs.get('pk')
+        try:
+            favorite = Favorite.objects.get(user_profile=user_profile, product_id=product_id)
+            favorite.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Favorite.DoesNotExist:
+            return Response({'detail': 'Favorite not found.'}, status=status.HTTP_404_NOT_FOUND)
