@@ -366,6 +366,8 @@ class FavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Favorite.objects.none()
         user_profile = self.request.user.buyer_profile
         return Favorite.objects.filter(user_profile=user_profile).select_related('product').only('product__name', 'product__price')
 
