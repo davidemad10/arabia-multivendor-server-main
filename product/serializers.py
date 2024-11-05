@@ -79,3 +79,4 @@ class ProductSerializer(TranslatableModelSerializer):
         reviews_data = validated_data.pop('reviews', [])
         instance = super().update(instance, validated_data)
 
+

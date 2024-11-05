@@ -2,6 +2,8 @@ import json
 import jwt
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.core.cache import cache
+from django.db.models import Avg
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status , viewsets,mixins
 from rest_framework.generics import (
@@ -388,10 +390,18 @@ class FavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     @action(detail=False, methods=['get'], url_path='products')
     def favorite_products(self, request):
         user_profile = request.user.buyer_profile
-        favorite_product_ids = user_profile.favorite_products.values_list('id', flat=True)
+        cache_key = f'favorite_products_{user_profile.id}'
+        cached_products = cache.get(cache_key)
 
-        # Retrieve products based on the favorite product IDs
-        products = Product.objects.filter(id__in=favorite_product_ids)
-        serializer = ProductSerializer(products, many=True)
+        if cached_products is None:
+            favorite_product_ids = user_profile.favorite_products.values_list('id', flat=True)
+            products = Product.objects.filter(id__in=favorite_product_ids)\
+            .select_related('category', 'brand')\
+            .prefetch_related('images')\
+            .annotate(average_rating=Avg('reviews__rating'))
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = ProductSerializer(products, many=True)
+            cached_products = serializer.data
+            cache.set(cache_key, cached_products, timeout=300)  
+
+        return Response(cached_products, status=status.HTTP_200_OK)
