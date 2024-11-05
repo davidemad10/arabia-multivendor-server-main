@@ -15,6 +15,7 @@ from parler.models import TranslatableModel,TranslatedFields
 from .managers import CategoryManager
 
 
+
 User = get_user_model()
 
 
@@ -171,15 +172,14 @@ class Product(TranslatableModel):
     class Meta:
         ordering=['id']
         indexes = [
+            models.Index(fields=['id']),  # فهرس على حقل slug
             models.Index(fields=['slug']),  # فهرس على حقل slug
             models.Index(fields=['price_before_discount']),  # فهرس على حقل price_before_discount
             models.Index(fields=['price_after_discount']),  # فهرس على حقل price_after_discount
             models.Index(fields=['category']),  # فهرس على حقل category
             models.Index(fields=['brand']),  # فهرس على حقل brand
-            models.Index(fields=['supplier']),  # فهرس على حقل supplier
-            models.Index(fields=['created']),  # فهرس على حقل created
-            models.Index(fields=['updated']),  # فهرس على حقل updated
-            models.Index(fields=['price_before_discount', 'price_after_discount']),  # فهرس مركب على حقلين
+            models.Index(fields=['is_available']),
+            
         ]
     
 class ProductImage(models.Model):

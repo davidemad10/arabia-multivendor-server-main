@@ -4,6 +4,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.db.models import Case, ExpressionWrapper, F, FloatField, Sum, When
+from django.core.cache import cache
 from django_filters.rest_framework import DjangoFilterBackend
 # from openpyxl import load_workbook
 from rest_framework import filters, status, viewsets,permissions
@@ -77,7 +78,7 @@ class ProductViewSet( viewsets.ModelViewSet):
     pagination_class = ProductPagination
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related('category', 'brand').prefetch_related('color', 'size')
         queryset = queryset.filter(is_available=True, stock_quantity__gt=0)
         category_slug = self.request.GET.get("category")
         if category_slug:
@@ -90,7 +91,15 @@ class ProductViewSet( viewsets.ModelViewSet):
                     raise Http404 ('Category not found.')
         return queryset
 
-    
+    @action(detail=False, methods=["get"])
+    def cached_products(self, queryset_key):
+        cache_key = f'query_{queryset_key}'
+        queryset = cache.get(cache_key)
+        if not queryset:
+            queryset = Product.objects.filter(is_available=True, stock_quantity__gt=0).select_related('category', 'brand')
+            cache.set(cache_key, queryset, timeout=900) 
+        return queryset
+
     @action(detail=True, methods=["get"])
     def you_may_like(self, request, pk=None):
         try:

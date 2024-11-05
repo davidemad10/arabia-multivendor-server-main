@@ -91,9 +91,9 @@ class UserSerializer(serializers.ModelSerializer):
             elif request.method in ['PUT', 'PATCH']:
                 self.fields['buyer_profile'].required = False
                 self.fields['supplier_profile'].required = False
-                if not self.instance.is_supplier:
+                if self.instance and not getattr(self.instance, 'is_supplier', False):
                     self.fields.pop("supplier_profile", None)
-                if  not self.instance.is_buyer:
+                if self.instance and not getattr(self.instance, 'is_buyer', False):
                     self.fields.pop("buyer_profile", None)
     
     def validate_full_name(self, value):
