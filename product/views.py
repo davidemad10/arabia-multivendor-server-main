@@ -22,6 +22,7 @@ from .mixins import CheckProductManagerGroupMixin, CheckSupplierAdminGroupMixin
 from .models import Brand,Category,Product,Review
 from .pagination import ProductPagination
 from .filters import ProductFilter
+from .permissions import IsVendor 
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
@@ -77,7 +78,12 @@ class ProductViewSet( viewsets.ModelViewSet):
     ordering_fields = ["created","name",]
     # ordering = "name"
     pagination_class = ProductPagination
-
+    def get_permissions(self):
+        if self.action == "create":
+            self.permission_classes = [IsVendor]
+        else:
+            self.permission_classes = [permissions.IsAuthenticatedOrReadOnly] 
+        return super().get_permissions()
     def get_queryset(self):
         queryset = super().get_queryset().select_related('category', 'brand').prefetch_related('color', 'size')
         queryset = queryset.filter(is_available=True, stock_quantity__gt=0)
