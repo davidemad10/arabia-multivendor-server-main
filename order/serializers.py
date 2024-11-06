@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from django.db import transaction
 from .models import *
-from product.serializers import ProductSerializer
+from product.serializers import ProductSerializer,ProductMinimalSerializer
 
 class CartItemSerializer(serializers.ModelSerializer):
-    product= ProductSerializer(many=False)
+    product= ProductMinimalSerializer(many=False)
     sub_total=serializers.SerializerMethodField()
     class Meta:
         model= CartItem
@@ -88,7 +88,7 @@ class OrderSerializer(serializers.ModelSerializer):
     total_price = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     class Meta:
         model = Order
-        fields = ["id","is_paid","created","user","payment_method","total_price","order_items"]
+        fields = ["id","is_paid","created","user","payment_method","shipping_status","total_price","order_items"]
 
 
 

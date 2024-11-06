@@ -112,7 +112,7 @@ class CartDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return get_object_or_404(Cart, items__cart__user=self.request.user)
+        return Cart.objects.filter(user=self.request.user).latest('created')
 
 #invoice creation pdf
 @staff_member_required
