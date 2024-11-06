@@ -4,6 +4,7 @@ from django_filters import BooleanFilter, CharFilter, FilterSet
 
 from .models import Product
 
+from django.contrib.postgres.search import TrigramSimilarity
 
 class CustomBooleanFilter(BooleanFilter):
     def filter(self, qs, value):
@@ -33,10 +34,12 @@ class ProductFilter(FilterSet):
         ]
     def filter_by_search(self, queryset, name, value):
         if value:
-            return queryset.filter(
+            return queryset.annotate(
+                similarity=TrigramSimilarity('translations__name', value)
+            ).filter(
                 Q(translations__language_code__in=['en', 'ar']) &
-                Q(translations__name__icontains=value)
-            )
+                Q(similarity__gt=0.1)
+            ).order_by('-similarity')
         return queryset
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
