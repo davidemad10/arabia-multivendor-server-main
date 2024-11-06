@@ -1,4 +1,5 @@
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery
+
 from django_filters import BooleanFilter, CharFilter, FilterSet
 
 from .models import Product
@@ -19,7 +20,7 @@ class ProductFilter(FilterSet):
     sub_category = CharFilter(field_name="category__slug", lookup_expr="icontains")
     brand = CharFilter(field_name="brand__name", lookup_expr="icontains")
     supplier = CharFilter(field_name="supplier__id", lookup_expr="iexact")
-
+    search = CharFilter(method='filter_by_search')
     class Meta:
         model = Product
         fields = [
@@ -28,8 +29,15 @@ class ProductFilter(FilterSet):
             "brand",
             "category",
             "sub_category",
+            "search",
         ]
-
+    def filter_by_search(self, queryset, name, value):
+        if value:
+            return queryset.filter(
+                Q(translations__language_code__in=['en', 'ar']) &
+                Q(translations__name__icontains=value)
+            )
+        return queryset
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
 
