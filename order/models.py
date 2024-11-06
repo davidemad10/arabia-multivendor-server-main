@@ -45,6 +45,12 @@ class Order(models.Model):
         COD = "COD", _("Cash on Delivery")
         INSTAPAY = "INSTAPAY", _("Instapay")
         VODAFONE_CASH = "VODAFONE_CASH", _("Vodafone Cash")
+    class SHIPPING_STATUS_CHOICES(models.TextChoices):
+        ORDERED = "OR", _("Ordered")
+        PREPARING = "P", _("Preparing for Shipping")
+        OTW = "OTW", _("On the way")
+        DELIVERED = "DE", _("Delivered")
+        RETURN="RE",_("Returned")
 
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
     user = models.ForeignKey(
@@ -55,6 +61,10 @@ class Order(models.Model):
     paid_date = models.DateTimeField(_("Paid Date"), null=True, blank=True)
     payment_method = models.CharField(
         _("Payment Method"), max_length=20, choices=PAYMENT_CHOICES.choices
+    )
+    shipping_status = models.CharField(
+        _("Shipping Status"), max_length=10, choices=SHIPPING_STATUS_CHOICES.choices, 
+        default=SHIPPING_STATUS_CHOICES.ORDERED
     )
     total_price = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)
 
@@ -73,21 +83,12 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    class SHIPPING_STATUS_CHOICES(models.TextChoices):
-        ORDERED = "OR", _("Ordered")
-        PREPARING = "P", _("Preparing for Shipping")
-        OTW = "OTW", _("On the way")
-        DELIVERED = "DE", _("Delivered")
-
     order = models.ForeignKey(Order, related_name="order_items", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     color = models.ForeignKey(Color, related_name="order_item", on_delete=models.SET_NULL, null=True, blank=True)
     size = models.ForeignKey(Size, related_name="order_item", on_delete=models.SET_NULL, null=True, blank=True)
     quantity = models.PositiveIntegerField(_("Quantity"), default=1)
     total_price = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)
-    shipping_status = models.CharField(
-        _("Shipping Status"), max_length=10, choices=SHIPPING_STATUS_CHOICES.choices, default=SHIPPING_STATUS_CHOICES.ORDERED
-    )
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

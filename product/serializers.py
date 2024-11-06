@@ -2,6 +2,7 @@ from parler_rest.serializers import TranslatableModelSerializer
 from parler_rest.fields import TranslatedFieldsField
 from .models import Brand,Category,Product,Review,Color,Size,ProductImage
 from rest_framework import serializers
+from django.utils.translation import get_language
 
 class BrandSerializer(TranslatableModelSerializer):
     translations = TranslatedFieldsField(shared_model=Brand)
@@ -80,3 +81,15 @@ class ProductSerializer(TranslatableModelSerializer):
         instance = super().update(instance, validated_data)
 
 
+class ProductMinimalSerializer(serializers.ModelSerializer):
+    images=ProductImageSerializer(many=True, read_only=True)
+    name = serializers.SerializerMethodField()
+    class Meta:
+        model = Product
+        fields = ['id','name', 'price_after_discount','images']
+    def get_name(self, obj):
+        # Use the current language code
+        language = get_language()
+        # Filter the translations for the current language
+        translation = obj.translations.filter(language_code=language).first()
+        return translation.name if translation else None

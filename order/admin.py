@@ -13,7 +13,7 @@ from django.shortcuts import render
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0 
-    readonly_fields = ('product', 'color', 'size', 'quantity', 'total_price', 'shipping_status')
+    readonly_fields = ('product', 'color', 'size', 'quantity', 'total_price')
     can_delete = False
 
     def has_add_permission(self, request, obj=None):
@@ -21,12 +21,12 @@ class OrderItemInline(admin.TabularInline):
     
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'created', 'is_paid', 'payment_method', 'get_total','order_pdf')
-    list_filter = ('is_paid', 'payment_method', 'created')
+    list_display = ('id', 'user', 'created', 'is_paid', 'payment_method', 'get_total', 'shipping_status','order_pdf')
+    list_filter = ('shipping_status','is_paid', 'payment_method', 'created')
     search_fields = ('user__username', 'user__email')
     readonly_fields = ('get_total', 'created', 'paid_date')
     inlines = [OrderItemInline]
-
+    
     def order_pdf(self,obj):
         url=reverse('order:admin_order_pdf', args=[obj.id])
         return mark_safe(f'<a href="{url}" target="_blank">View Invoice</a>')
@@ -70,8 +70,8 @@ class SalesAdmin(OrderAdmin):
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'product', 'quantity', 'total_price', 'shipping_status', 'created')
-    list_filter = ('shipping_status', 'created')
+    list_display = ('id', 'order', 'product', 'quantity', 'total_price',  'created')
+    list_filter = ['created']
     search_fields = ('product__name', 'order__user__username')
     readonly_fields = ('total_price', 'created')
 

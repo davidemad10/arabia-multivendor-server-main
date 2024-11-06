@@ -14,12 +14,15 @@ from rest_framework.generics import (
     ListAPIView,
     RetrieveUpdateDestroyAPIView,
 )
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .filters import ProductFilter
 from .mixins import CheckProductManagerGroupMixin, CheckSupplierAdminGroupMixin
 from .models import Brand,Category,Product,Review
 from .pagination import ProductPagination
+from .filters import ProductFilter
+from .permissions import IsVendor 
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
@@ -29,7 +32,7 @@ from .serializers import (
 from django.http import Http404
 from rest_framework.decorators import action
 from django.utils.translation import activate
-activate('en')  # or another language code
+activate('en')
 
 
 class CategoryViewSet(viewsets.ViewSet):
@@ -71,12 +74,16 @@ class ProductViewSet( viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = ProductFilter
     ordering_fields = ["created","name",]
-
-    # filterset_class = ProductFilter
     # ordering = "name"
     pagination_class = ProductPagination
-
+    def get_permissions(self):
+        if self.action == "create":
+            self.permission_classes = [IsVendor]
+        else:
+            self.permission_classes = [permissions.IsAuthenticatedOrReadOnly] 
+        return super().get_permissions()
     def get_queryset(self):
         queryset = super().get_queryset().select_related('category', 'brand').prefetch_related('color', 'size')
         queryset = queryset.filter(is_available=True, stock_quantity__gt=0)
