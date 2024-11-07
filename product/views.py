@@ -137,7 +137,10 @@ class ProductViewSet( viewsets.ModelViewSet):
                 descendant_categories = category.get_descendants(include_self=True)
                 # Filter products within these categories
                 products = Product.objects.filter(category__in=descendant_categories).order_by('id')
-                print("Filtered products:", products)
+                page = self.paginate_queryset(products)
+                if page is not None:
+                    serializer = ProductSerializer(page, many=True)
+                    return self.get_paginated_response(serializer.data)
                 serializer = ProductSerializer(products, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Category.DoesNotExist:
