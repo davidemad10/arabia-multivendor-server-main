@@ -7,6 +7,7 @@ from xhtml2pdf import pisa
 from .tasks import payment_completed
 import io
 import os
+from payment.models import Payment
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -31,15 +32,29 @@ class CheckoutView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'user_id': request.user.id})
         serializer.is_valid(raise_exception=True)
-        order = serializer.save()
-        payment_completed(order.id)
-        return Response({
-            'message': 'Order created successfully',
-            'order_id': order.id,
-            'total_price': order.total_price,
-            'created': order.created,
-        }, status=status.HTTP_201_CREATED)
+        # Check if payment is completed
+        order_id = serializer.validated_data['order_id']
+        if not Payment.objects.filter(cart_id=cart_id, is_paid=True).exists():
+            raise ValidationError("Payment not completed. Please complete the payment before checkout.")
+        try:
+            order = Order.objects.get(id=order_id, user=request.user)
+        except Order.DoesNotExist:
+            raise ValidationError("Order not found or not associated with the user.")
 
+        # Ensure that the order is associated with a completed payment
+        if not order.is_paid:
+            raise ValidationError("Payment not completed for this order.")
+
+        # Ensure the cart associated with the order has been paid
+        cart = order.cart  # Get the cart associated with this order
+        if not Payment.objects.filter(cart=cart, is_paid=True).exists():
+            raise ValidationError("Payment not completed. Please complete the payment before checkout.")
+        cart.delete()
+
+        return Response({
+            'message': 'Payment confirmed for checkout. Proceed to the next steps.',
+        }, status=status.HTTP_200_OK)
+    
 # View for listing all order items of a user
 class OrderItemListView(generics.ListAPIView):
     serializer_class = OrderItemSerializer

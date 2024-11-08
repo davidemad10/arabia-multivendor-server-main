@@ -3,7 +3,7 @@ from .models import *
 from django.utils.html import format_html
 
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('order', 'method', 'amount', 'created_at')
+    list_display = ('cart', 'method', 'amount', 'created_at')
     list_filter = ('method', 'created_at')
     search_fields = ('order__id', 'pay_phone')
     readonly_fields = ('created_at',)

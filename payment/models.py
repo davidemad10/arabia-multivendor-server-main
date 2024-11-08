@@ -1,11 +1,11 @@
 from django.db import models
 from common.validators.image_extension_validator import image_extension_validator
 from common.utils.file_upload_paths import (payment_screenshoot_path)
-from order.models import  Order
+from order.models import  Cart
 
 
 class Payment(models.Model):
-    order=models.ForeignKey(Order, on_delete=models.CASCADE)
+    cart=models.ForeignKey(Cart, on_delete=models.CASCADE,null=True, blank=True)
     pay_phone=models.CharField(max_length=20,blank=True, null=True)
     PAYMENT_METHODS=[
         ('COD','Cash on Delivery'),

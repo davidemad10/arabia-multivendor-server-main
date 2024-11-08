@@ -56,6 +56,7 @@ class Order(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name=_("Buyer"), related_name="orders"
     )
+    cart = models.ForeignKey(Cart, on_delete=models.SET_NULL, null=True, blank=True)
     created = models.DateTimeField(_("Ordered Date"), auto_now_add=True)
     is_paid = models.BooleanField(_("Is Paid"), default=False)
     paid_date = models.DateTimeField(_("Paid Date"), null=True, blank=True)
