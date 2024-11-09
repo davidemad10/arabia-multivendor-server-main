@@ -375,6 +375,18 @@ class FavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        user_profile = request.user.buyer_profile
+        cache_key = f'favorite_products_{user_profile.id}'
+        cache.delete(cache_key)
+        # Fetch the updated list of favorite products and set the cache again
+        favorite_product_ids = user_profile.favorite_products.values_list('id', flat=True)
+        products = Product.objects.filter(id__in=favorite_product_ids)\
+            .select_related('category', 'brand')\
+            .prefetch_related('images')\
+            .annotate(average_rating=Avg('reviews__rating'))
+
+        serializer = ProductSerializer(products, many=True)
+        cache.set(cache_key, serializer.data, timeout=300)
         response_data = {
             'message': 'Product added to favorites successfully',
         }
@@ -386,9 +398,24 @@ class FavoriteViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         try:
             favorite = Favorite.objects.get(user_profile=user_profile, product_id=product_id)
             favorite.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            cache_key = f'favorite_products_{user_profile.id}'
+            cache.delete(cache_key)
+            # Fetch the updated favorite products and store in the cache
+            favorite_product_ids = user_profile.favorite_products.values_list('id', flat=True)
+            products = Product.objects.filter(id__in=favorite_product_ids)\
+                .select_related('category', 'brand')\
+                .prefetch_related('images')\
+                .annotate(average_rating=Avg('reviews__rating'))
+
+            serializer = ProductSerializer(products, many=True)
+            cache.set(cache_key, serializer.data, timeout=300)
+            response_data = {
+            'message': 'Product deleted successfully',
+            }
+            return Response(response_data,status=status.HTTP_204_NO_CONTENT)
         except Favorite.DoesNotExist:
             return Response({'detail': 'Favorite not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
     @action(detail=False, methods=['get'], url_path='products')
     def favorite_products(self, request):
         user_profile = request.user.buyer_profile

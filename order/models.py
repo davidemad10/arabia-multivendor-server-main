@@ -45,6 +45,7 @@ class Order(models.Model):
         COD = "COD", _("Cash on Delivery")
         INSTAPAY = "INSTAPAY", _("Instapay")
         VODAFONE_CASH = "VODAFONE_CASH", _("Vodafone Cash")
+        CARD = "ONLINE_CARD",_("online card")
     class SHIPPING_STATUS_CHOICES(models.TextChoices):
         ORDERED = "OR", _("Ordered")
         PREPARING = "P", _("Preparing for Shipping")
@@ -58,6 +59,8 @@ class Order(models.Model):
     )
     created = models.DateTimeField(_("Ordered Date"), auto_now_add=True)
     is_paid = models.BooleanField(_("Is Paid"), default=False)
+    paymob_order_id = models.CharField(max_length=100, blank=True, null=True)
+    payment_status = models.CharField(max_length=50, blank=True, null=True)
     paid_date = models.DateTimeField(_("Paid Date"), null=True, blank=True)
     payment_method = models.CharField(
         _("Payment Method"), max_length=20, choices=PAYMENT_CHOICES.choices

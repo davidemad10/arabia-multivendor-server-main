@@ -221,16 +221,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token["shipping_address"] = None
         
         # Check for buyer or supplier profile and add relevant information
-        if user.buyer_profile:
-            token["profile_picture"] = user.buyer_profile.profile_picture.url if user.buyer_profile.profile_picture else None
-            token["bank_account"] = user.buyer_profile.bank_account
-            token["instapay_account"] = user.buyer_profile.instapay_account
-            token["electronic_wallet"] = user.buyer_profile.electronic_wallet
-        elif user.supplier_profile:
-            token["profile_picture"] = user.supplier_profile.profile_picture.url if user.supplier_profile.profile_picture else None
+        if user.is_supplier and user.supplier_profile:
+            # Supplier-specific fields
+            token["profile_picture"] = (
+                user.supplier_profile.profile_picture.url if user.supplier_profile.profile_picture else None
+            )
             token["bank_account"] = user.supplier_profile.bank_account
             token["instapay_account"] = user.supplier_profile.instapay_account
             token["electronic_wallet"] = user.supplier_profile.electronic_wallet
+        elif user.buyer_profile:
+            # Buyer-specific fields
+            token["profile_picture"] = (
+                user.buyer_profile.profile_picture.url if user.buyer_profile.profile_picture else None
+            )
+            token["bank_account"] = user.buyer_profile.bank_account
+            token["instapay_account"] = user.buyer_profile.instapay_account
+            token["electronic_wallet"] = user.buyer_profile.electronic_wallet
         else:
             token["profile_picture"] = None
 
