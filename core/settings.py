@@ -18,7 +18,7 @@ SECRET_KEY = 'django-insecure-t+o87tcbcea5%kkscv($!=5js%-@sxk7wq1v%tdjg$njj5$h^%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -504,3 +504,7 @@ JAZZMIN_UI_TWEAKS = {
     },
     "actions_sticky_top": False
 }
+
+
+PAYMOB_API_KEY='ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2T1RrMk5UUTNMQ0p1WVcxbElqb2lhVzVwZEdsaGJDSjkuUmtQTk53WUlmcnk5ZnF6Rml6WENqaEtPb2N6cC1oRTROcGpidFdWb2N0Q2FvTWpubkZMSW4wWEt4R0dqVllXWi1tT0RFT2pRZDlrbXhTQ1liblNyaUE='
+PAYMOB_INTEGRATION_ID = '4837145'
