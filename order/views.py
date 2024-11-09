@@ -101,7 +101,7 @@ class DeleteCartItemView(generics.DestroyAPIView):
     queryset = CartItem.objects.all()
 
     def get_object(self):
-        return get_object_or_404(CartItem, id=self.kwargs["pk"], cart__items__cart__user=self.request.user)
+        return get_object_or_404(CartItem, id=self.kwargs["pk"])
     def destroy(self, request, *args, **kwargs):
         self.perform_destroy(self.get_object())
         return Response({"message": "Deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

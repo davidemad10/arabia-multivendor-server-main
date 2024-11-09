@@ -36,6 +36,8 @@ class CartItem(models.Model):
     cart=models.ForeignKey(Cart,on_delete=models.CASCADE,related_name="items",null=True, blank=True)
     product=models.ForeignKey(Product,on_delete=models.CASCADE,related_name="cartitems",null=True, blank=True)
     quantity=models.PositiveSmallIntegerField(default=1)
+    class Meta:
+        unique_together = ('cart', 'product')
     def get_item_total(self):
         return self.quantity * self.product.price_after_discount
 
