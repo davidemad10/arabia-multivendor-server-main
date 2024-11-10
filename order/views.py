@@ -94,6 +94,15 @@ class UpdateCartItemView(generics.UpdateAPIView):
 
     def get_object(self):
         return get_object_or_404(CartItem, id=self.kwargs["pk"], cart__items__cart__user=self.request.user)
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return Response(
+            {
+                "message": "Item updated successfully",
+                "data": response.data
+            },
+            status=status.HTTP_200_OK
+        )
 
 # View for deleting items from the cart
 class DeleteCartItemView(generics.DestroyAPIView):
