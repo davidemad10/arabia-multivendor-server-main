@@ -1,6 +1,6 @@
 from parler_rest.serializers import TranslatableModelSerializer
 from parler_rest.fields import TranslatedFieldsField
-from .models import Brand,Category,Product,Review,Color,Size,ProductImage
+from .models import Brand,Category,Product,Review,Color,Size,ProductImage,ProductFact,CategoryDimension
 from rest_framework import serializers
 from django.utils.translation import get_language
 
@@ -93,3 +93,14 @@ class ProductMinimalSerializer(serializers.ModelSerializer):
         # Filter the translations for the current language
         translation = obj.translations.filter(language_code=language).first()
         return translation.name if translation else None
+    
+
+class ProductFactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductFact  # Fact model for optimized retrieval
+        fields = "__all__"
+
+class CategoryDimensionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategoryDimension  # Dimension model for optimized retrieval
+        fields = "__all__"
