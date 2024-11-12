@@ -134,11 +134,17 @@ class ProductViewSet( viewsets.ModelViewSet):
         print("category_slug",category_slug)
         if category_slug:
             try:
+                cache_key = f'products_by_category_{category_slug}'
+                cached_data = cache.get(cache_key)
+                if cached_data:
+                    return Response(cached_data, status=status.HTTP_200_OK)
                 category = Category.objects.get(slug=category_slug)
                 # Get all descendant categories of the specified category
                 descendant_categories = category.get_descendants(include_self=True)
                 # Filter products within these categories
-                products = Product.objects.filter(category__in=descendant_categories).order_by('id')
+                products = Product.objects.filter(category__in=descendant_categories).order_by('id') \
+                .select_related('category', 'brand') \
+                .prefetch_related('color', 'size')
                 page = self.paginate_queryset(products)
                 if page is not None:
                     serializer = ProductSerializer(page, many=True)
