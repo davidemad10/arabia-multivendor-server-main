@@ -216,3 +216,71 @@ class Review(models.Model):
 
 
 
+#Dimensional modeling
+class CategoryDimension(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    image = models.ImageField(upload_to=categories_images_path, validators=[image_extension_validator])
+    is_featured = models.BooleanField(default=False)
+    parent_name = models.CharField(max_length=255, null=True, blank=True)  # denormalized parent name
+
+class BrandDimension(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    image = models.ImageField(upload_to=brands_images_path, validators=[image_extension_validator])
+
+class SizeDimension(models.Model):
+    name = models.CharField(max_length=10, unique=True)
+
+class ColorDimension(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=100, unique=True)
+
+
+class ProductFact(models.Model):
+    product_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    category = models.ForeignKey('CategoryDimension', on_delete=models.SET_NULL, null=True)
+    category_slug = models.SlugField(null=True, blank=True) 
+    brand = models.ForeignKey('BrandDimension', on_delete=models.SET_NULL, null=True)
+    brand_slug = models.SlugField(null=True, blank=True) 
+    product_name = models.CharField(max_length=255)   
+    product_slug = models.SlugField(unique=True, null=True, blank=True)  
+    first_image = models.URLField(null=True, blank=True)  
+    color = models.ManyToManyField('ColorDimension', blank=True)
+    size = models.ManyToManyField('SizeDimension', blank=True)
+    price_before_discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_after_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    stock_quantity = models.IntegerField(default=0)
+    total_sold = models.IntegerField(default=0)
+    total_views = models.IntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['product_id', 'price_after_discount']),
+            models.Index(fields=['category_slug', 'brand_slug', 'product_slug']),
+        ]
+
+class SalesFact(models.Model):
+    product = models.ForeignKey(ProductFact, on_delete=models.CASCADE)
+    quantity_sold = models.IntegerField()
+    sale_price = models.DecimalField(max_digits=10, decimal_places=2)
+    sale_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['product', 'sale_date']),
+        ]
+
+
+class ReviewFact(models.Model):
+    product = models.ForeignKey(ProductFact, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.FloatField()
+    review_text = models.TextField(max_length=250, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'product')
+        indexes = [
+            models.Index(fields=['product', 'rating']),
+        ]

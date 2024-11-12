@@ -19,7 +19,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .filters import ProductFilter
 from .mixins import CheckProductManagerGroupMixin, CheckSupplierAdminGroupMixin
-from .models import Brand,Category,Product,Review
+from .models import Brand,Category,Product,Review,ProductFact,CategoryDimension
 from .pagination import ProductPagination
 from .filters import ProductFilter
 from .permissions import IsVendor 
@@ -28,6 +28,8 @@ from .serializers import (
     CategorySerializer,
     ProductSerializer,
     ReviewSerializer,
+    ProductFactSerializer,
+    CategoryDimensionSerializer
 )
 from django.http import Http404
 from rest_framework.decorators import action
@@ -157,3 +159,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Automatically assign the user and product when creating a review
         serializer.save(user=self.request.user)
 
+class ProductRetrievalViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ProductFact.objects.all()
+    serializer_class = ProductFactSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    ordering_fields = ["sales", "total_views"]
+
+class CategoryRetrievalViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = CategoryDimension.objects.all()
+    serializer_class = CategoryDimensionSerializer
+    filter_backends = [DjangoFilterBackend]

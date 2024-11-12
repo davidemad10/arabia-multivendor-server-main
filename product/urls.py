@@ -6,11 +6,12 @@ from . import views
 app_name = "product"
 
 router = DefaultRouter()
+router.register(r'reviews', views.ReviewViewSet)
+router.register(r'productsretrieve', views.ProductRetrievalViewSet)
+router.register(r'categoryretrive', views.CategoryRetrievalViewSet)
 router.register(r"category", views.CategoryViewSet)
 router.register(r"brand", views.BrandViewSet)
 router.register(r"", views.ProductViewSet)
-router.register(r'reviews', views.ReviewViewSet)
-
 urlpatterns = [
     path("", include(router.urls)),
     # path("delete", views.DeleteProductView.as_view()),
