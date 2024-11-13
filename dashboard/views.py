@@ -89,3 +89,89 @@
 
 #     return context
 
+
+from django.db.models import Sum,F
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from order.models import OrderItem
+from .serializers import VendorOrderSummarySerializer
+from product.serializers import ProductSerializer
+from django.utils import timezone
+from datetime import timedelta
+
+class VendorOrderSummaryView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request, supplier_id):
+        # Get the current date and time
+        now = timezone.now()
+        # Filter OrderItems by supplier
+        order_items = OrderItem.objects.filter(product__supplier__id=supplier_id)
+
+        # Aggregate total orders and total revenue
+        total_orders = order_items.values('order').distinct().count() 
+        # Calculate total products sold and total revenue
+        total_products_count = order_items.aggregate(
+            total_count=Sum('quantity')
+        )['total_count'] or 0
+
+        total_revenue = order_items.aggregate(
+            revenue=Sum(F('total_price') * F('quantity'))  # Sum for each quantity * price
+        )['revenue'] or 0.00
+
+        # Calculate weekly earnings (filtering order items in the last 7 days)
+        weekly_order_items = order_items.filter(order__created__gte=now - timedelta(weeks=1))
+        weekly_revenue = weekly_order_items.aggregate(
+            revenue=Sum(F('total_price') * F('quantity'))
+        )['revenue'] or 0.00
+
+        # Calculate monthly earnings (filtering order items in the last 30 days)
+        monthly_order_items = order_items.filter(order__created__gte=now - timedelta(days=30))
+        monthly_revenue = monthly_order_items.aggregate(
+            revenue=Sum(F('total_price') * F('quantity'))
+        )['revenue'] or 0.00
+
+        # Return the aggregated data
+        data =VendorOrderSummarySerializer({
+            "total_orders": total_orders,
+            "total_products_count": total_products_count,
+            "total_revenue": total_revenue,
+            "weekly_revenue": weekly_revenue,
+            "monthly_revenue": monthly_revenue,
+        }).data
+        return Response(data)
+
+
+class VendorOrderDetailsView(APIView):
+    def get(self, request, supplier_id):
+        # Get all OrderItems related to the given supplier_id
+        order_items = OrderItem.objects.filter(product__supplier__id=supplier_id)
+
+        # Prepare the data to return
+        order_details = []
+
+        for order_item in order_items:
+            # Get the related order
+            order = order_item.order
+            customer_name = order.user.full_name 
+
+            # Get the related product
+            product_name = order_item.product.name
+
+            # Get the order date from OrderItem's created field
+            order_date = order_item.created
+
+            # Add the information to the response data
+            order_details.append({
+                'order_id': order.id,
+                'customer_name': customer_name,
+                'product_name': product_name,
+                'order_date': order_date,
+                'quantity': order_item.quantity,  
+                'total_price': order_item.total_price,  
+            })
+
+        # Return the order details
+        return Response(order_details, status=status.HTTP_200_OK)
