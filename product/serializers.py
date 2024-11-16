@@ -52,6 +52,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(TranslatableModelSerializer):
     productName = serializers.CharField(source="name")
+    productDescription = serializers.CharField(source="description",required=False)
     # Use PrimaryKeyRelatedField for writable actions (POST/PUT)
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True)
     brand = serializers.PrimaryKeyRelatedField(queryset=Brand.objects.all(), write_only=True)
@@ -63,21 +64,38 @@ class ProductSerializer(TranslatableModelSerializer):
     color_details = ColorSerializer(source='color', many=True, read_only=True)
     size_details = SizeSerializer(source='size', many=True, read_only=True)
 
-    translations = TranslatedFieldsField(shared_model=Product,required=False)
-    description = serializers.CharField(source="translations.description" , read_only=True)
+    translations = serializers.SerializerMethodField()
     specifications = serializers.JSONField()
     reviews = ReviewSerializer(many=True, read_only=True)
     image_uploads = serializers.ListField(
         child=serializers.ImageField(), write_only=True
     )
-    images=ProductImageSerializer(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
+
     class Meta:
         model = Product
         fields = "__all__"
+    
+    def get_translations(self, obj):
+        # Assuming you are handling 'en' and 'ar' languages
+        translations = obj.translations.all()
+        translated_data = {}
 
+        # Collect translations for each language (for example 'en' and 'ar')
+        for translation in translations:
+            translated_data[translation.language_code] = {
+                "name": translation.name,
+                "description": translation.description,
+            }
+
+        return translated_data
     def create(self, validated_data):
-
-        translations_data = validated_data.pop('translations', None)
+        print(validated_data)
+        
+        # Pop related fields
+        translations_data = validated_data.pop('translations', {})
+        if isinstance(translations_data, str):
+            translations_data = json.loads(translations_data)
         colors = validated_data.pop('color', [])
         sizes = validated_data.pop('size', [])
         reviews_data = validated_data.pop('reviews', [])
@@ -86,30 +104,64 @@ class ProductSerializer(TranslatableModelSerializer):
         # Create the product
         product = Product.objects.create(**validated_data)
 
-        # Handle translations if available
-        if translations_data:
-            for lang, translation in translations_data.items():
-                for field, value in translation.items():
-                    setattr(product.translations, field, value)
-            product.save()
+        # Handle translations as objects (Not as a dictionary)
+        for lang, translation in translations_data.items():
+            # Create translation for each language code
+            translation_obj = product.translations.create(language_code=lang)
+            
+            # Set the translation fields for each language
+            for field, value in translation.items():
+                setattr(translation_obj, field, value)
+            
+            # Save the translation
+            translation_obj.save()
+
+        # Add ManyToMany relationships
         product.color.set(colors)
         product.size.set(sizes)
-        for review_data in reviews_data:
-            Review.objects.create(product=product, **review_data)
+
+        # Add images
         for image in image_data:
             ProductImage.objects.create(product=product, image=image)
+
+        # Add reviews
+        for review_data in reviews_data:
+            Review.objects.create(product=product, **review_data)
+
         return product
+
+
+
     def update(self, instance, validated_data):
+        translations_data = validated_data.pop('translations', {})
         colors = validated_data.pop('color', [])
         sizes = validated_data.pop('size', [])
         image_data = validated_data.pop('image_uploads', [])
         reviews_data = validated_data.pop('reviews', [])
+
+        # Update main instance
         instance = super().update(instance, validated_data)
+
+        # Update or create translations
+        for lang, translation in translations_data.items():
+            translation_obj, created = instance.translations.get_or_create(
+                language_code=lang,
+                defaults=translation
+            )
+            if not created:
+                for field, value in translation.items():
+                    setattr(translation_obj, field, value)
+                translation_obj.save()
+
+        # Update ManyToMany relationships
         instance.color.set(colors)
         instance.size.set(sizes)
+
+        # Add images
         if image_data:
             for image in image_data:
                 ProductImage.objects.create(product=instance, image=image)
+
         return instance
 
 
