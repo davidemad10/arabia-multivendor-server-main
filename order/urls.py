@@ -11,8 +11,8 @@ urlpatterns = [
     path("orders/", views.OrderListView.as_view()),
     path("orderdetail/<uuid:pk>", views.OrderDetailView.as_view()),
     path("addcart/", views.AddCartItemView.as_view()),
-    path("updatecart/<uuid:pk>", views.UpdateCartItemView.as_view()),
-    path("deletecartitem/<uuid:pk>", views.DeleteCartItemView.as_view()),
+    path("updatecart/", views.UpdateCartItemView.as_view()),
+    path("deletecartitem/<uuid:product_id>", views.DeleteCartItemView.as_view()),
     path("cart/details/",views.CartDetailView.as_view()),
     path("admin/pdf/<uuid:order_id>/",views.admin_order_pdf,name='admin_order_pdf')
     # path("advance/", views.OrderItemShippingAdvanceView.as_view()),

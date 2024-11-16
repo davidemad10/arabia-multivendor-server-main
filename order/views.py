@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError ,NotFound
 from .models import Order, OrderItem, Cart , CartItem
+from product.models import Product
 from .serializers import(
     CreateOrderSerializer,
     OrderItemSerializer,
@@ -93,7 +94,10 @@ class UpdateCartItemView(generics.UpdateAPIView):
     queryset = CartItem.objects.all()
 
     def get_object(self):
-        return get_object_or_404(CartItem, id=self.kwargs["pk"], cart__items__cart__user=self.request.user)
+        product_id = self.request.data.get("product_id") or self.kwargs.get("product_id")
+        product = get_object_or_404(Product, id=product_id)
+        cart = get_object_or_404(Cart, user=self.request.user)
+        return get_object_or_404(CartItem, product=product, cart=cart)
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
         return Response(
@@ -110,7 +114,10 @@ class DeleteCartItemView(generics.DestroyAPIView):
     queryset = CartItem.objects.all()
 
     def get_object(self):
-        return get_object_or_404(CartItem, id=self.kwargs["pk"])
+        product_id = self.kwargs.get("product_id")
+        product = get_object_or_404(Product, id=product_id)
+        cart = get_object_or_404(Cart, user=self.request.user)
+        return get_object_or_404(CartItem, product=product, cart=cart)
     def destroy(self, request, *args, **kwargs):
         self.perform_destroy(self.get_object())
         return Response({"message": "Deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
