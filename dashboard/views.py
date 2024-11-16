@@ -118,7 +118,7 @@ class VendorOrderSummaryView(APIView):
         )['total_count'] or 0
 
         total_revenue = order_items.aggregate(
-            revenue=Sum(F('total_price') * F('quantity'))  # Sum for each quantity * price
+            revenue=Sum(F('total_price') * F('quantity'))
         )['revenue'] or 0.00
 
         # Calculate weekly earnings (filtering order items in the last 7 days)
