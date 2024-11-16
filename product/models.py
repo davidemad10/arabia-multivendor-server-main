@@ -114,7 +114,7 @@ class Product(TranslatableModel):
     id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     translations=TranslatedFields(
     name=models.CharField(_("Product Name"), max_length=255),
-    description=models.TextField(_("Description"))
+    description=models.TextField(_("Description des"))
     )
 
     color=models.ManyToManyField(Color,related_name="products",blank=True)
