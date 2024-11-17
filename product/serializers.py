@@ -64,7 +64,7 @@ class ProductSerializer(TranslatableModelSerializer):
     color_details = ColorSerializer(source='color', many=True, read_only=True)
     size_details = SizeSerializer(source='size', many=True, read_only=True)
 
-    translations = serializers.SerializerMethodField()
+    translations = serializers.DictField(write_only=True)
     specifications = serializers.JSONField()
     reviews = ReviewSerializer(many=True, read_only=True)
     image_uploads = serializers.ListField(
@@ -94,8 +94,7 @@ class ProductSerializer(TranslatableModelSerializer):
         
         # Pop related fields
         translations_data = validated_data.pop('translations', {})
-        if isinstance(translations_data, str):
-            translations_data = json.loads(translations_data)
+        
         colors = validated_data.pop('color', [])
         sizes = validated_data.pop('size', [])
         reviews_data = validated_data.pop('reviews', [])
@@ -106,15 +105,8 @@ class ProductSerializer(TranslatableModelSerializer):
 
         # Handle translations as objects (Not as a dictionary)
         for lang, translation in translations_data.items():
-            # Create translation for each language code
-            translation_obj = product.translations.create(language_code=lang)
-            
-            # Set the translation fields for each language
-            for field, value in translation.items():
-                setattr(translation_obj, field, value)
-            
-            # Save the translation
-            translation_obj.save()
+             product.translations.create(language_code=lang, **translation)
+
 
         # Add ManyToMany relationships
         product.color.set(colors)
@@ -143,15 +135,14 @@ class ProductSerializer(TranslatableModelSerializer):
         instance = super().update(instance, validated_data)
 
         # Update or create translations
+        
         for lang, translation in translations_data.items():
             translation_obj, created = instance.translations.get_or_create(
-                language_code=lang,
-                defaults=translation
+                language_code=lang
             )
-            if not created:
-                for field, value in translation.items():
-                    setattr(translation_obj, field, value)
-                translation_obj.save()
+            for field, value in translation.items():
+                setattr(translation_obj, field, value)
+            translation_obj.save()
 
         # Update ManyToMany relationships
         instance.color.set(colors)

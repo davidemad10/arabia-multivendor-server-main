@@ -16,7 +16,7 @@ from rest_framework.generics import (
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from rest_framework.response import Response
 from .filters import ProductFilter
 from .mixins import CheckProductManagerGroupMixin, CheckSupplierAdminGroupMixin
@@ -76,6 +76,7 @@ class BrandViewSet( viewsets.ModelViewSet):
 class SizeViewSet(ReadOnlyModelViewSet):
     queryset = Size.objects.all()
     serializer_class = SizeSerializer
+
 
 class ColorViewSet(ReadOnlyModelViewSet):
     queryset = Color.objects.all()
@@ -182,6 +183,19 @@ class ProductRetrievalViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductFactSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     ordering_fields = ["sales", "total_views"]
+
+
+class VendorProductsViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        # Filter products by the logged-in user (supplier)
+        queryset = Product.objects.filter(supplier=request.user)
+        if not queryset.exists():  # Check if the queryset is empty
+            return Response({"message": "You don't have any products yet."}, status=200)
+        
+        serializer = ProductSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class CategoryRetrievalViewSet(viewsets.ReadOnlyModelViewSet):
