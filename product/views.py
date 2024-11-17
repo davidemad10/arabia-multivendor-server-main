@@ -16,10 +16,11 @@ from rest_framework.generics import (
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.response import Response
 from .filters import ProductFilter
 from .mixins import CheckProductManagerGroupMixin, CheckSupplierAdminGroupMixin
-from .models import Brand,Category,Product,Review,ProductFact,CategoryDimension
+from .models import Brand,Category,Product,Review,ProductFact,CategoryDimension,Size,Color
 from .pagination import ProductPagination
 from .filters import ProductFilter
 from .permissions import IsVendor 
@@ -29,7 +30,9 @@ from .serializers import (
     ProductSerializer,
     ReviewSerializer,
     ProductFactSerializer,
-    CategoryDimensionSerializer
+    CategoryDimensionSerializer,
+    SizeSerializer,
+    ColorSerializer,
 )
 from django.http import Http404
 from rest_framework.decorators import action
@@ -56,8 +59,6 @@ class CategoryViewSet(viewsets.ViewSet):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
-
-
 class BrandViewSet( viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
@@ -70,7 +71,16 @@ class BrandViewSet( viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
+
+
+class SizeViewSet(ReadOnlyModelViewSet):
+    queryset = Size.objects.all()
+    serializer_class = SizeSerializer
+
+class ColorViewSet(ReadOnlyModelViewSet):
+    queryset = Color.objects.all()
+    serializer_class = ColorSerializer
+
 
 class ProductViewSet( viewsets.ModelViewSet):
     queryset = Product.objects.all()
@@ -156,6 +166,7 @@ class ProductViewSet( viewsets.ModelViewSet):
         else:
             return Response({"error": "Category slug is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
@@ -165,11 +176,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
         # Automatically assign the user and product when creating a review
         serializer.save(user=self.request.user)
 
+
 class ProductRetrievalViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ProductFact.objects.all()
     serializer_class = ProductFactSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     ordering_fields = ["sales", "total_views"]
+
 
 class CategoryRetrievalViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CategoryDimension.objects.all()

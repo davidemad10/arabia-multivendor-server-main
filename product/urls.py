@@ -11,6 +11,8 @@ router.register(r'productsretrieve', views.ProductRetrievalViewSet)
 router.register(r'categoryretrive', views.CategoryRetrievalViewSet)
 router.register(r"category", views.CategoryViewSet)
 router.register(r"brand", views.BrandViewSet)
+router.register(r"size", views.SizeViewSet)
+router.register(r"color", views.ColorViewSet)
 router.register(r"", views.ProductViewSet)
 urlpatterns = [
     path("", include(router.urls)),
