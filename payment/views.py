@@ -21,7 +21,14 @@ class OrderpayInstapay(generics.ListCreateAPIView):
 
         # Access the related Order and update fields
         order = payment.order
-        order.is_paid = True
+        if order.is_paid:
+            order.cart.checked_out = True
+            order.cart.save()
+        else:
+            return Response(
+                {'error': 'Payment must be completed before checkout.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         order.payment_method = payment.method  # Use the method from the Payment
         order.paid_date = timezone.now()  # Set the paid date to current time
         order.save()

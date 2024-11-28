@@ -97,7 +97,7 @@ class ReturnRequestFileAdmin(admin.ModelAdmin):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
-    list_display=('id','user','created')
+    list_display=('id','user','created','checked_out')
 
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):

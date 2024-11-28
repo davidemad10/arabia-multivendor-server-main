@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError ,NotFound
 from .models import Order, OrderItem, Cart , CartItem
 from product.models import Product
+from payment.models import Payment
 from .serializers import(
     CreateOrderSerializer,
     OrderItemSerializer,
@@ -33,6 +34,11 @@ class CheckoutView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data, context={'user_id': request.user.id})
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
+        if not Payment.objects.filter(order=order, is_paid=True).exists():
+            return Response(
+                {'error': 'Payment must be completed before checkout.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         payment_completed(order.id)
         return Response({
             'message': 'Order created successfully',
