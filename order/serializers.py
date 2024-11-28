@@ -24,7 +24,11 @@ class AddCartItemSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("Quantity must be greater than zero.")
         product_id = self.initial_data.get("product_id")
-        product = Product.objects.get(pk=product_id)
+        try:
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            raise serializers.ValidationError("The product with the given ID does not exist.")
+    
         if value > product.stock_quantity:
             raise serializers.ValidationError(f"Cannot add more than {product.stock_quantity} of this product to the cart.")
         return value
@@ -32,7 +36,13 @@ class AddCartItemSerializer(serializers.ModelSerializer):
     
     def save(self, **kwargs):
         cart_id = self.context["cart_id"]
-        product_id = self.validated_data["product_id"] 
+        product_id = self.validated_data["product_id"]
+        # Fetch the current cart to check if it's checked out
+        cart = Cart.objects.get(id=cart_id)
+        
+        # If the cart is checked out, create a new cart
+        if cart.checked_out:
+            cart = Cart.objects.create(user=cart.user) 
         quantity = self.validated_data["quantity"] 
         
         try:
@@ -71,6 +81,13 @@ class CartSerializer(serializers.ModelSerializer):
         
     def get_total_price(self, cart):
         return sum(item.quantity * item.product.price_after_discount for item in cart.items.all())
+    def validate(self, data):
+        # Check if attempting to mark the cart as checked out
+        if data.get('checked_out', False):
+            cart = self.instance
+            if not Payment.objects.filter(order__cart=cart, is_paid=True).exists():
+                raise serializers.ValidationError("Payment must be completed before checkout.")
+        return data
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -134,7 +151,9 @@ class CreateOrderSerializer(serializers.Serializer):
             order.total_price = total_order_price  
             order.save()
 
-            # Delete the cart after creating the order
-            Cart.objects.filter(id=cart_id).delete()
+            # Mark the cart as checked out
+            cart = Cart.objects.get(id=cart_id)
+            cart.checked_out = True
+            cart.save()
 
             return order

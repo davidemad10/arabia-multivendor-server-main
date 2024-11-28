@@ -25,6 +25,7 @@ class Cart(models.Model):
     id=models.UUIDField(default=uuid.uuid4, primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts", null=True, blank=True)
     created=models.DateTimeField(auto_now_add=True)
+    checked_out = models.BooleanField(default=False)
 
     def  __str__(self):
         return str(self.id)
